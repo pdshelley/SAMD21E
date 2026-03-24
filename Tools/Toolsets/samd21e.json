@@ -15,10 +15,12 @@
       "-e", "_reset",
       "-no_zero_fill_sections",
       "-segalign", "4",
-      "-segaddr", "__RESET", "0x20000000",
-      "-segaddr", "__VECTORS", "0x20000100",
-      "-seg1addr", "0x20000200",
-      "-pagezero_size", "0"
+      "-pagezero_size", "0",
+      "-image_base", "0x2000",
+      "-segaddr", "__RESET",   "0x2000",
+      "-segaddr", "__VECTORS", "0x2020",
+      "-seg1addr", "0x2100",
+      "-segprot", "__TEXT", "r-x", "r-x"
     ]
   }
 }

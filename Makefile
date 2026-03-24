@@ -10,16 +10,15 @@
 ##===----------------------------------------------------------------------===##
 
 # Paths
-REPOROOT         := $(shell git rev-parse --show-toplevel)
+REPOROOT         := $(shell pwd)
 TOOLSROOT        := $(REPOROOT)/Tools
-TOOLSET          := $(TOOLSROOT)/Toolsets/SAMD21.json
+TOOLSET          := $(TOOLSROOT)/Toolsets/samd21e.json
 MACHO2UF2        := $(TOOLSROOT)/macho2uf2.py
 SWIFT_BUILD      := swift build
 BUILD_SYSTEM     := native
 
 # Flags
-#PICO_FAMILY      := rp2040
-SAMD21_FAMILY      := samd21
+SAMD21E_FAMILY      := samd21e
 ARCH             := armv6m
 TARGET           := $(ARCH)-apple-none-macho
 SWIFT_BUILD_ARGS := \
@@ -49,7 +48,7 @@ build:
 
 	@echo "extracting binary..."
 	$(MACHO2UF2) \
-		--samd21-family "$(SAMD21_FAMILY)" \
+		--samd21e-family "$(SAMD21E_FAMILY)" \
 		"$(BUILDROOT)/Application" \
 		"$(BUILDROOT)/Application.uf2" \
 		--base-address 0x2000 \

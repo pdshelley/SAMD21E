@@ -11,4 +11,4 @@ The SVDs used in this repo have been copied from the following sources.
 
 | file                 | source                                                               |
 |----------------------|----------------------------------------------------------------------|
-
+| `ATSAMD21E17D.svd`   | https://packs.download.microchip.com                                 |

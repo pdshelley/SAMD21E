@@ -3,11 +3,13 @@
 import PackageDescription
 
 let package = Package(
-  name: "ATSAMD21E18",
+  name: "SAMD21E",
   products: [
     .executable(name: "Application", targets: ["Application"])
   ],
   targets: [
-    .executableTarget(name: "Application"),
+    .executableTarget(name: "Application", dependencies: ["SAMD21E"]),
+    .target(name: "Support"),
+    .target(name: "SAMD21E", dependencies: ["Support"]),
   ],
   swiftLanguageModes: [.v5])
