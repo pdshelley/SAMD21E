@@ -12,4 +12,5 @@ let package = Package(
     .target(name: "Support"),
     .target(name: "SAMD21E", dependencies: ["Support"]),
   ],
-  swiftLanguageModes: [.v5])
+  swiftLanguageModes: [.v5]
+)

@@ -18,14 +18,15 @@ SWIFT_BUILD      := swift build
 BUILD_SYSTEM     := native
 
 # Flags
-SAMD21E_FAMILY      := samd21e
+UF2_FAMILY       := samd21
 ARCH             := armv6m
 TARGET           := $(ARCH)-apple-none-macho
 SWIFT_BUILD_ARGS := \
 	--build-system $(BUILD_SYSTEM) \
 	--configuration release \
 	--triple $(TARGET) \
-	--toolset $(TOOLSET)
+	--toolset $(TOOLSET) \
+	--enable-experimental-prebuilts
 BUILDROOT        := $(shell $(SWIFT_BUILD) $(SWIFT_BUILD_ARGS) --show-bin-path)
 
 .PHONY: build
@@ -48,12 +49,11 @@ build:
 
 	@echo "extracting binary..."
 	$(MACHO2UF2) \
-		--samd21e-family "$(SAMD21E_FAMILY)" \
+		--uf2-family "$(UF2_FAMILY)" \
 		"$(BUILDROOT)/Application" \
 		"$(BUILDROOT)/Application.uf2" \
-		--base-address 0x2000 \
-		--segments '__TEXT,__DATA,__VECTORS,__RESET'
-
+		--base-address 0x00002000 \
+		--segments '__RESET,__VECTORS,__TEXT,__DATA'
 
 .PHONY: clean
 clean:

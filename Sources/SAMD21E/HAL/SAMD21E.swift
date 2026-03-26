@@ -9,8 +9,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-public struct SAMD21E {
-  let hardware = SAMD21EHardware()
-
-  public init() {}
-}
+//public struct SAMD21E {
+//  let hardware = SAMD21EHardware()
+//
+//  public init() {}
+//}

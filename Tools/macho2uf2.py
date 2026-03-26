@@ -51,16 +51,19 @@ def main():
     parser.add_argument("output")
     parser.add_argument("--base-address", required=True)
     parser.add_argument("--segments", required=True)
-    parser.add_argument("--samd21e-family", required=True)
+    parser.add_argument("--uf2-family", required=True)
     args = parser.parse_args()
     args.base_address = int(args.base_address, 16)
     args.segments = args.segments.split(",")
-    if args.samd21e_family == "SAMD21E":
+    if args.uf2_family == "rp2040":
         family_id = 0xE48BFF56
         add_errata_block = False
-    elif args.samd21e_family == "samd21e":
+    elif args.uf2_family == "rp2350":
         family_id = 0xE48BFF59
         add_errata_block = True
+    elif args.uf2_family == "samd21":
+        family_id = 0x68ed2b88
+        add_errata_block = False
     else:
         assert False
 
@@ -92,7 +95,7 @@ def main():
         output += struct.pack("<I", num_blocks)  # numBlocks
         output += struct.pack(
             "<I", family_id
-        )  # fileSize / familyID: SAMD21E/rp2350 family ID
+        )  # fileSize / familyID: rp2040/rp2350 family ID
 
         # Data
         if len(block) < 476:
