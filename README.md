@@ -40,4 +40,3 @@ tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x
 ```
 
 Success: Board auto-resets and runs the sketch.
-```
