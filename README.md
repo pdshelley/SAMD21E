@@ -1,3 +1,43 @@
-# SAMD21
+# SAMD21E - Self-contained Makefile Build (No Arduino IDE/CLI)
 
-Used an Adafruit QT Py - SAMD21 Dev Board 
+Current stage: Builds cleanly and uploads via bossac (NeoPixel-only, USB disabled).
+
+## Build
+
+```bash
+# Clean and build
+make clean && make
+```
+
+This produces: `build/SAMD21E.ino.bin` (correctly offset at 0x2000)
+
+## Upload
+
+1. **Double-tap the reset button** on the QT Py board quickly.
+   - NeoPixel should stay steady green.
+   - Board enters bootloader mode.
+
+2. Upload with bossac (run immediately after double-tap):
+
+```bash
+tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x2000 build/SAMD21E.ino.bin
+```
+
+**Note:** The port (`cu.usbmodem1101`) may change. If you get "No device found", run this first to check:
+
+```bash
+ls /dev/cu.usbmodem*
+```
+
+Then update the `-p` value and retry the bossac command right after double-tapping reset.
+
+## Full sequence (most common)
+
+```bash
+make clean && make
+# Double-tap reset on QT Py
+tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x2000 build/SAMD21E.ino.bin
+```
+
+Success: Board auto-resets and runs the sketch.
+```

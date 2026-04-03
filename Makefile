@@ -20,19 +20,13 @@ COMMON_FLAGS := -mcpu=cortex-m0plus -mthumb \
                 -DF_CPU=48000000L -DARDUINO=10607 \
                 -DARDUINO_QTPY_M0 -DARDUINO_ARCH_SAMD -DARDUINO_SAMD_ADAFRUIT \
                 -D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_QTPY_M0 \
-                -DARM_MATH_CM0PLUS -DUSB_VID=0x239A -DUSB_PID=0x80CB \
-                -DUSBCON -DUSB_CONFIG_POWER=100 \
-                -DUSB_MANUFACTURER=\"Adafruit\" \
-                -D'USB_PRODUCT="QT Py M0"' \
-				-DUSE_TINYUSB
+                -DARM_MATH_CM0PLUS
 
 CFLAGS   := $(COMMON_FLAGS) -std=gnu11
 CXXFLAGS := $(COMMON_FLAGS) -std=gnu++11 -fno-threadsafe-statics -fno-rtti -fno-exceptions
 
 INCLUDES := -I$(CORE_DIR)/cores/arduino \
             -I$(CORE_DIR)/variants/$(VARIANT) \
-            -I$(CORE_DIR)/libraries/Adafruit_TinyUSB_Arduino/src \
-            -I$(CORE_DIR)/libraries/Adafruit_TinyUSB_Arduino/src/arduino \
             -I$(CORE_DIR)/libraries/SPI \
             -I$(CORE_DIR)/libraries/Adafruit_ZeroDMA \
             -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
@@ -40,18 +34,13 @@ INCLUDES := -I$(CORE_DIR)/cores/arduino \
             -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL \
             -I$(NEO_DIR)
 
-# All core sources
-CORE_CPPS := $(wildcard $(CORE_DIR)/cores/arduino/*.cpp)
-CORE_CS   := $(wildcard $(CORE_DIR)/cores/arduino/*.c)
+# All core sources - exclude USB to prevent USBDevice references
+CORE_CPPS := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.cpp,$(wildcard $(CORE_DIR)/cores/arduino/*.cpp))
+CORE_CS   := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.c,$(wildcard $(CORE_DIR)/cores/arduino/*.c))
 VARIANT_CPP := $(CORE_DIR)/variants/$(VARIANT)/variant.cpp
 
 LIB_CPPS  := $(wildcard $(NEO_DIR)/*.cpp)
 LIB_CS    := $(wildcard $(NEO_DIR)/*.c)
-
-# TinyUSB sources (this fixes the USBDeviceClass errors)
-TINYUSB_DIR := $(CORE_DIR)/libraries/Adafruit_TinyUSB_Arduino/src
-TINYUSB_CPPS := $(wildcard $(TINYUSB_DIR)/arduino/*.cpp) $(wildcard $(TINYUSB_DIR)/*.cpp)
-TINYUSB_OBJS := $(patsubst $(TINYUSB_DIR)/%.cpp,$(BUILD_DIR)/tiny_$(notdir $(basename %)).o,$(TINYUSB_CPPS))
 
 # Objects
 CORE_OBJS := $(patsubst $(CORE_DIR)/cores/arduino/%.cpp,$(BUILD_DIR)/core_%.o,$(CORE_CPPS)) \
@@ -60,7 +49,6 @@ CORE_OBJS := $(patsubst $(CORE_DIR)/cores/arduino/%.cpp,$(BUILD_DIR)/core_%.o,$(
 
 LIB_OBJS  := $(patsubst $(NEO_DIR)/%.cpp,$(BUILD_DIR)/neo_%.o,$(LIB_CPPS)) \
              $(patsubst $(NEO_DIR)/%.c,$(BUILD_DIR)/neo_%.o,$(LIB_CS)) \
-             $(TINYUSB_OBJS)
 
 SKETCH_CPP := $(BUILD_DIR)/$(PROJECT).ino.cpp
 SKETCH_OBJ := $(BUILD_DIR)/$(PROJECT).ino.o
@@ -100,6 +88,7 @@ $(BUILD_DIR)/neo_%.o: $(NEO_DIR)/%.c | $(BUILD_DIR)
 $(BUILD_DIR)/$(PROJECT).ino.elf: $(SKETCH_OBJ) $(CORE_OBJS) $(LIB_OBJS) | $(BUILD_DIR)
 	$(CXX) -Os -Wl,--gc-sections \
 		-T$(CORE_DIR)/variants/$(VARIANT)/linker_scripts/gcc/flash_with_bootloader.ld \
+		-Wl,--section-start=.text=0x2000 \
 		-mcpu=cortex-m0plus -mthumb --specs=nano.specs --specs=nosys.specs \
 		-Wl,--cref -Wl,--check-sections -Wl,--gc-sections \
 		-o $@ $^ \
@@ -107,12 +96,6 @@ $(BUILD_DIR)/$(PROJECT).ino.elf: $(SKETCH_OBJ) $(CORE_OBJS) $(LIB_OBJS) | $(BUIL
 
 $(BUILD_DIR)/$(PROJECT).ino.bin: $(BUILD_DIR)/$(PROJECT).ino.elf
 	$(OBJCOPY) -O binary $< $@
-	
-$(BUILD_DIR)/tiny_%.o: $(CORE_DIR)/libraries/Adafruit_TinyUSB_Arduino/src/%.cpp | $(BUILD_DIR) $(BUILD_DIR)/tiny_arduino
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-$(BUILD_DIR)/tiny_%.o: $(CORE_DIR)/libraries/Adafruit_TinyUSB_Arduino/src/arduino/%.cpp | $(BUILD_DIR) $(BUILD_DIR)/tiny_arduino
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
 
 clean:
 	rm -rf $(BUILD_DIR)
