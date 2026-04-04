@@ -1,13 +1,13 @@
 #include <Adafruit_NeoPixel.h>
 
-#define PIN        11   // NeoPixel pin
-#define NUMPIXELS  1    // One pixel
+#define PIN        11
+#define NUMPIXELS  1
 
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 void setup() {
-  pixels.begin();           // Initialize NeoPixel
-  pixels.setBrightness(2); // Low brightness (0-255)
+  pixels.begin();
+  pixels.setBrightness(2);
 }
 
 void loop() {
@@ -23,7 +23,7 @@ void loop() {
   pixels.show();
   delay(100);
 
-  pixels.clear();           // Off
+  pixels.clear();
   pixels.show();
   delay(100);
 }

@@ -50,22 +50,19 @@ CORE_OBJS := $(patsubst $(CORE_DIR)/cores/arduino/%.cpp,$(BUILD_DIR)/core_%.o,$(
 LIB_OBJS  := $(patsubst $(NEO_DIR)/%.cpp,$(BUILD_DIR)/neo_%.o,$(LIB_CPPS)) \
              $(patsubst $(NEO_DIR)/%.c,$(BUILD_DIR)/neo_%.o,$(LIB_CS)) \
 
-SKETCH_CPP := $(BUILD_DIR)/$(PROJECT).ino.cpp
-SKETCH_OBJ := $(BUILD_DIR)/$(PROJECT).ino.o
+SKETCH_CPP := Application/Application.cpp
+SKETCH_OBJ := $(BUILD_DIR)/$(PROJECT).o
 
 .PHONY: all clean
 
-all: $(BUILD_DIR)/$(PROJECT).ino.bin
-	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).ino.elf
+all: $(BUILD_DIR)/$(PROJECT).bin
+	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).elf
 
 $(BUILD_DIR):
 	mkdir -p $@
 	
 $(BUILD_DIR)/tiny_arduino:
 	mkdir -p $@
-
-$(SKETCH_CPP): $(PROJECT)/$(PROJECT).ino | $(BUILD_DIR)
-	cp $< $@
 
 $(SKETCH_OBJ): $(SKETCH_CPP) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
@@ -85,7 +82,7 @@ $(BUILD_DIR)/neo_%.o: $(NEO_DIR)/%.cpp | $(BUILD_DIR)
 $(BUILD_DIR)/neo_%.o: $(NEO_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/$(PROJECT).ino.elf: $(SKETCH_OBJ) $(CORE_OBJS) $(LIB_OBJS) | $(BUILD_DIR)
+$(BUILD_DIR)/$(PROJECT).elf: $(SKETCH_OBJ) $(CORE_OBJS) $(LIB_OBJS) | $(BUILD_DIR)
 	$(CXX) -Os -Wl,--gc-sections \
 		-T$(CORE_DIR)/variants/$(VARIANT)/linker_scripts/gcc/flash_with_bootloader.ld \
 		-Wl,--section-start=.text=0x2000 \
@@ -94,7 +91,7 @@ $(BUILD_DIR)/$(PROJECT).ino.elf: $(SKETCH_OBJ) $(CORE_OBJS) $(LIB_OBJS) | $(BUIL
 		-o $@ $^ \
 		-Ltools/CMSIS/5.4.0/CMSIS/Lib/GCC/ -larm_cortexM0l_math -lm
 
-$(BUILD_DIR)/$(PROJECT).ino.bin: $(BUILD_DIR)/$(PROJECT).ino.elf
+$(BUILD_DIR)/$(PROJECT).bin: $(BUILD_DIR)/$(PROJECT).elf
 	$(OBJCOPY) -O binary $< $@
 
 clean:
