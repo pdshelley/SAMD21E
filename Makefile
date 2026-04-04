@@ -1,63 +1,98 @@
-##===----------------------------------------------------------------------===##
-##
-## This source file is part of the Swift open source project
-##
-## Copyright (c) 2025 Apple Inc. and the Swift project authors.
-## Licensed under Apache License v2.0 with Runtime Library Exception
-##
-## See https://swift.org/LICENSE.txt for license information
-##
-##===----------------------------------------------------------------------===##
+# Self-contained Makefile for Adafruit QT Py M0
+# Top level: SAMD21E/
 
-# Paths
-REPOROOT         := $(shell git rev-parse --show-toplevel)
-TOOLSROOT        := $(REPOROOT)/Tools
-TOOLSET          := $(TOOLSROOT)/Toolsets/SAMD21.json
-MACHO2UF2        := $(TOOLSROOT)/macho2uf2.py
-SWIFT_BUILD      := swift build
-BUILD_SYSTEM     := native
+PROJECT   := SAMD21E
+BUILD_DIR := build
+CORE_DIR  := hardware/adafruit/samd/1.7.17
+TOOLCHAIN := tools/arm-none-eabi-gcc/9-2019q4/bin
+VARIANT   := qtpy_m0
+NEO_DIR   := libraries/Adafruit_NeoPixel
 
-# Flags
-#PICO_FAMILY      := rp2040
-SAMD21_FAMILY      := samd21
-ARCH             := armv6m
-TARGET           := $(ARCH)-apple-none-macho
-SWIFT_BUILD_ARGS := \
-	--build-system $(BUILD_SYSTEM) \
-	--configuration release \
-	--triple $(TARGET) \
-	--toolset $(TOOLSET)
-BUILDROOT        := $(shell $(SWIFT_BUILD) $(SWIFT_BUILD_ARGS) --show-bin-path)
+CC      := $(TOOLCHAIN)/arm-none-eabi-gcc
+CXX     := $(TOOLCHAIN)/arm-none-eabi-g++
+OBJCOPY := $(TOOLCHAIN)/arm-none-eabi-objcopy
+SIZE    := $(TOOLCHAIN)/arm-none-eabi-size
 
-.PHONY: build
-build:
-	@echo "building..."
-	$(SWIFT_BUILD) \
-		$(SWIFT_BUILD_ARGS) \
-		-Xlinker -map -Xlinker $(BUILDROOT)/Application.mangled.map \
-		--verbose
+COMMON_FLAGS := -mcpu=cortex-m0plus -mthumb \
+                -g -Os -Werror=return-type \
+                -ffunction-sections -fdata-sections \
+                -nostdlib --param max-inline-insns-single=500 \
+                -DF_CPU=48000000L -DARDUINO=10607 \
+                -DARDUINO_QTPY_M0 -DARDUINO_ARCH_SAMD -DARDUINO_SAMD_ADAFRUIT \
+                -D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_QTPY_M0 \
+                -DARM_MATH_CM0PLUS
 
-	@echo "demangling linker map..."
-	cat $(BUILDROOT)/Application.mangled.map \
-		| c++filt | swift demangle > $(BUILDROOT)/Application.map
+CFLAGS   := $(COMMON_FLAGS) -std=gnu11
+CXXFLAGS := $(COMMON_FLAGS) -std=gnu++11 -fno-threadsafe-statics -fno-rtti -fno-exceptions
 
-	@echo "disassembling..."
-	otool \
-		-arch $(ARCH) -v -V -d -t \
-		$(BUILDROOT)/Application \
-		| c++filt | swift demangle > $(BUILDROOT)/Application.disassembly
+INCLUDES := -I$(CORE_DIR)/cores/arduino \
+            -I$(CORE_DIR)/variants/$(VARIANT) \
+            -I$(CORE_DIR)/libraries/SPI \
+            -I$(CORE_DIR)/libraries/Adafruit_ZeroDMA \
+            -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
+            -Itools/CMSIS/5.4.0/CMSIS/DSP/Include \
+            -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL \
+            -I$(NEO_DIR)
 
-	@echo "extracting binary..."
-	$(MACHO2UF2) \
-		--samd21-family "$(SAMD21_FAMILY)" \
-		"$(BUILDROOT)/Application" \
-		"$(BUILDROOT)/Application.uf2" \
-		--base-address 0x2000 \
-		--segments '__TEXT,__DATA,__VECTORS,__RESET'
+# All core sources - exclude USB to prevent USBDevice references
+CORE_CPPS := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.cpp,$(wildcard $(CORE_DIR)/cores/arduino/*.cpp))
+CORE_CS   := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.c,$(wildcard $(CORE_DIR)/cores/arduino/*.c))
+VARIANT_CPP := $(CORE_DIR)/variants/$(VARIANT)/variant.cpp
 
+LIB_CPPS  := $(wildcard $(NEO_DIR)/*.cpp)
+LIB_CS    := $(wildcard $(NEO_DIR)/*.c)
 
-.PHONY: clean
+# Objects
+CORE_OBJS := $(patsubst $(CORE_DIR)/cores/arduino/%.cpp,$(BUILD_DIR)/core_%.o,$(CORE_CPPS)) \
+             $(patsubst $(CORE_DIR)/cores/arduino/%.c,$(BUILD_DIR)/core_%.o,$(CORE_CS)) \
+             $(BUILD_DIR)/variant.o
+
+LIB_OBJS  := $(patsubst $(NEO_DIR)/%.cpp,$(BUILD_DIR)/neo_%.o,$(LIB_CPPS)) \
+             $(patsubst $(NEO_DIR)/%.c,$(BUILD_DIR)/neo_%.o,$(LIB_CS)) \
+
+SKETCH_CPP := Application/Application.cpp
+SKETCH_OBJ := $(BUILD_DIR)/$(PROJECT).o
+
+.PHONY: all clean
+
+all: $(BUILD_DIR)/$(PROJECT).bin
+	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).elf
+
+$(BUILD_DIR):
+	mkdir -p $@
+	
+$(BUILD_DIR)/tiny_arduino:
+	mkdir -p $@
+
+$(SKETCH_OBJ): $(SKETCH_CPP) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/core_%.o: $(CORE_DIR)/cores/arduino/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/core_%.o: $(CORE_DIR)/cores/arduino/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/variant.o: $(VARIANT_CPP) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/neo_%.o: $(NEO_DIR)/%.cpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/neo_%.o: $(NEO_DIR)/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/$(PROJECT).elf: $(SKETCH_OBJ) $(CORE_OBJS) $(LIB_OBJS) | $(BUILD_DIR)
+	$(CXX) -Os -Wl,--gc-sections \
+		-T$(CORE_DIR)/variants/$(VARIANT)/linker_scripts/gcc/flash_with_bootloader.ld \
+		-Wl,--section-start=.text=0x2000 \
+		-mcpu=cortex-m0plus -mthumb --specs=nano.specs --specs=nosys.specs \
+		-Wl,--cref -Wl,--check-sections -Wl,--gc-sections \
+		-o $@ $^ \
+		-Ltools/CMSIS/5.4.0/CMSIS/Lib/GCC/ -larm_cortexM0l_math -lm
+
+$(BUILD_DIR)/$(PROJECT).bin: $(BUILD_DIR)/$(PROJECT).elf
+	$(OBJCOPY) -O binary $< $@
+
 clean:
-	@echo "cleaning..."
-	@swift package clean
-	@rm -rf .build
+	rm -rf $(BUILD_DIR)
