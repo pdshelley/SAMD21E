@@ -52,12 +52,9 @@ build/
 .Trashes
 
 # Xcode / Swift future-proofing
-*.xcodeproj/
-*.xcworkspace/
 xcuserdata/
 DerivedData/
 *.swiftpm/
 .swiftpm/
-build/
 *.ipa
 *.dSYM
