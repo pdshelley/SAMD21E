@@ -39,21 +39,10 @@
 #ifdef ARDUINO
 #include <Arduino.h>
 
-#ifdef USE_TINYUSB // For Serial when selecting TinyUSB
-#include <Adafruit_TinyUSB.h>
-#endif
-
 #endif
 
 #ifdef TARGET_LPC1768
 #include <Arduino.h>
-#endif
-
-#if defined(ARDUINO_ARCH_RP2040)
-#include <stdlib.h>
-#include "hardware/pio.h"
-#include "hardware/clocks.h"
-#include "rp2040_pio.h"
 #endif
 
 // The order of primary colors in the NeoPixel data stream can vary among
@@ -202,15 +191,6 @@ static const uint8_t PROGMEM _NeoPixelGammaTable[256] = {
     184, 186, 188, 191, 193, 195, 197, 199, 202, 204, 206, 209, 211, 213, 215,
     218, 220, 223, 225, 227, 230, 232, 235, 237, 240, 242, 245, 247, 250, 252,
     255};
-
-/* Declare external methods required by the Adafruit_NeoPixel implementation
-    for specific hardware/library versions
-*/
-#if defined(ESP32)
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-extern "C" void espInit();
-#endif
-#endif
 
 /*!
     @brief  Class that stores state and functions for interacting with
@@ -377,16 +357,6 @@ public:
 
   static neoPixelType str2order(const char *v);
 
-private:
-#if defined(ARDUINO_ARCH_RP2040)
-  bool   rp2040claimPIO(void);
-  void   rp2040releasePIO(void);
-  void   rp2040Show(uint8_t *pixels, uint32_t numBytes);
-  PIO    pio = NULL;
-  uint   pio_sm = -1;
-  uint   pio_program_offset = 0;
-#endif
-
 protected:
 #ifdef NEO_KHZ400 // If 400 KHz NeoPixel support enabled...
   bool is800KHz; ///< true if 800 KHz pixels
@@ -403,11 +373,6 @@ protected:
   uint8_t bOffset;    ///< Index of blue byte
   uint8_t wOffset;    ///< Index of white (==rOffset if no white)
   uint32_t endTime;   ///< Latch timing reference
-
-#ifdef __AVR__
-  volatile uint8_t *port; ///< Output PORT register
-  uint8_t pinMask;        ///< Output PORT bitmask
-#endif
 
 #if defined(ARDUINO_ARCH_STM32) || \
     defined(ARDUINO_ARCH_ARDUINO_CORE_STM32) || \
