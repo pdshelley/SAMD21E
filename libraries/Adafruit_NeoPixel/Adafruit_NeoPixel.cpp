@@ -1,48 +1,3 @@
-/*!
- * @file Adafruit_NeoPixel.cpp
- *
- * @mainpage Arduino Library for driving Adafruit NeoPixel addressable LEDs,
- * FLORA RGB Smart Pixels and compatible devicess -- WS2811, WS2812, WS2812B,
- * SK6812, etc.
- *
- * @section intro_sec Introduction
- *
- * This is the documentation for Adafruit's NeoPixel library for the
- * Arduino platform, allowing a broad range of microcontroller boards
- * (most AVR boards, many ARM devices, ESP8266 and ESP32, among others)
- * to control Adafruit NeoPixels, FLORA RGB Smart Pixels and compatible
- * devices -- WS2811, WS2812, WS2812B, SK6812, etc.
- *
- * Adafruit invests time and resources providing this open source code,
- * please support Adafruit and open-source hardware by purchasing products
- * from Adafruit!
- *
- * @section author Author
- *
- * Written by Phil "Paint Your Dragon" Burgess for Adafruit Industries,
- * with contributions by PJRC, Michael Miller and other members of the
- * open source community.
- * Minor change in timing for CH32 @48MHz by Maxint-RD 20260126.
- *
- * @section license License
- *
- * This file is part of the Adafruit_NeoPixel library.
- *
- * Adafruit_NeoPixel is free software: you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * Adafruit_NeoPixel is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with NeoPixel. If not, see
- * <http://www.gnu.org/licenses/>.
- *
- */
 
 #include "Adafruit_NeoPixel.h"
 
@@ -383,11 +338,7 @@ void Adafruit_NeoPixel::show(void) {
 
     // ARM MCUs -- Teensy 3.0, 3.1, LC, Arduino Due, RP2040 -------------------
 
-#if defined(ARDUINO_ARCH_RP2040)
-  // Use PIO
-  rp2040Show(pixels, numBytes);
-
-#elif defined(TEENSYDUINO) &&                                                  \
+#if defined(TEENSYDUINO) &&                                                  \
     defined(KINETISK) // Teensy 3.0, 3.1, 3.2, 3.5, 3.6
 #define CYCLES_800_T0H (F_CPU / 4000000)
 #define CYCLES_800_T1H (F_CPU / 1250000)
@@ -1456,102 +1407,6 @@ if(is800KHz) {
 #endif // NEO_KHZ400
   SysTick->LOAD = saveLoad; // Restore SysTick rollover to 1 ms
   SysTick->VAL = saveVal;   // Restore SysTick value
-#elif defined(NRF51)
-  uint8_t *p = pixels, pix, count, mask;
-  int32_t num = numBytes;
-  unsigned int bitmask = (1 << g_ADigitalPinMap[pin]);
-  // https://github.com/sandeepmistry/arduino-nRF5/blob/dc53980c8bac27898fca90d8ecb268e11111edc1/variants/BBCmicrobit/variant.cpp
-
-  //volatile unsigned int *reg = (unsigned int *)(0x50000000UL + 0x508);
-  volatile uint32_t *reg = (uint32_t *)(NRF_GPIO_BASE + offsetof(NRF_GPIO_Type, OUTSET));
-
-  // https://github.com/sandeepmistry/arduino-nRF5/blob/dc53980c8bac27898fca90d8ecb268e11111edc1/cores/nRF5/SDK/components/device/nrf51.h
-  // http://www.iot-programmer.com/index.php/books/27-micro-bit-iot-in-c/chapters-micro-bit-iot-in-c/47-micro-bit-iot-in-c-fast-memory-mapped-gpio?showall=1
-  // https://github.com/Microsoft/pxt-neopixel/blob/master/sendbuffer.asm
-
-  asm volatile(
-      // "cpsid i" ; disable irq
-
-      //    b .start
-      "b  L%=_start"
-      "\n\t"
-      // .nextbit:               ;            C0
-      "L%=_nextbit:"
-      "\n\t" //;            C0
-      //    str r1, [r3, #0]    ; pin := hi  C2
-      "str %[bitmask], [%[reg], #0]"
-      "\n\t" //; pin := hi  C2
-      //    tst r6, r0          ;            C3
-      "tst %[mask], %[pix]"
-      "\n\t" //          ;            C3
-      //    bne .islate         ;            C4
-      "bne L%=_islate"
-      "\n\t" //;            C4
-      //    str r1, [r2, #0]    ; pin := lo  C6
-      "str %[bitmask], [%[reg], #4]"
-      "\n\t" //; pin := lo  C6
-      // .islate:
-      "L%=_islate:"
-      "\n\t"
-      //    lsrs r6, r6, #1     ; r6 >>= 1   C7
-      "lsr %[mask], %[mask], #1"
-      "\n\t" //; r6 >>= 1   C7
-      //    bne .justbit        ;            C8
-      "bne L%=_justbit"
-      "\n\t" //;            C8
-
-      //    ; not just a bit - need new byte
-      //    adds r4, #1         ; r4++       C9
-      "add %[p], #1"
-      "\n\t" //; r4++       C9
-      //    subs r5, #1         ; r5--       C10
-      "sub %[num], #1"
-      "\n\t" //; r5--       C10
-      //    bcc .stop           ; if (r5<0) goto .stop  C11
-      "bcc L%=_stop"
-      "\n\t" //; if (r5<0) goto .stop  C11
-      // .start:
-      "L%=_start:"
-      //    movs r6, #0x80      ; reset mask C12
-      "movs %[mask], #0x80"
-      "\n\t" //; reset mask C12
-      //    nop                 ;            C13
-      "nop"
-      "\n\t" //;            C13
-
-      // .common:               ;             C13
-      "L%=_common:"
-      "\n\t" //;            C13
-      //    str r1, [r2, #0]   ; pin := lo   C15
-      "str %[bitmask], [%[reg], #4]"
-      "\n\t" //; pin := lo  C15
-      //    ; always re-load byte - it just fits with the cycles better this way
-      //    ldrb r0, [r4, #0]  ; r0 := *r4   C17
-      "ldrb  %[pix], [%[p], #0]"
-      "\n\t" //; r0 := *r4   C17
-      //    b .nextbit         ;             C20
-      "b L%=_nextbit"
-      "\n\t" //;             C20
-
-      // .justbit: ; C10
-      "L%=_justbit:"
-      "\n\t" //; C10
-      //    ; no nops, branch taken is already 3 cycles
-      //    b .common ; C13
-      "b L%=_common"
-      "\n\t" //; C13
-
-      // .stop:
-      "L%=_stop:"
-      "\n\t"
-      //    str r1, [r2, #0]   ; pin := lo
-      "str %[bitmask], [%[reg], #4]"
-      "\n\t" //; pin := lo
-      //    cpsie i            ; enable irq
-
-      : [p] "+r"(p), [pix] "=&r"(pix), [count] "=&r"(count), [mask] "=&r"(mask),
-        [num] "+r"(num)
-      : [bitmask] "r"(bitmask), [reg] "r"(reg));
 
 #elif defined(__SAM3X8E__) // Arduino Due
 
