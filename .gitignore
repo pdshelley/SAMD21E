@@ -58,3 +58,6 @@ DerivedData/
 .swiftpm/
 *.ipa
 *.dSYM
+
+# Other
+.cbfg/
