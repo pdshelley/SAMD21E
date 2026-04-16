@@ -1,5 +1,5 @@
-# Self-contained Makefile for Adafruit QT Py M0
-# Top level: SAMD21E/
+# Self-contained Makefile for Adafruit QT Py SAMD21 (M0)
+# Stage: Wildcard core sources + small filter-out (prepares for incremental pruning)
 
 PROJECT   := SAMD21E
 BUILD_DIR := build
@@ -34,9 +34,12 @@ INCLUDES := -I$(CORE_DIR)/cores/arduino \
             -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL \
             -I$(NEO_DIR)
 
-# All core sources - exclude USB to prevent USBDevice references
-CORE_CPPS := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.cpp,$(wildcard $(CORE_DIR)/cores/arduino/*.cpp))
-CORE_CS   := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.c,$(wildcard $(CORE_DIR)/cores/arduino/*.c))
+# All core sources - exclude USB (and a few other things we don't need yet)
+CORE_CPPS := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.cpp, \
+              $(wildcard $(CORE_DIR)/cores/arduino/*.cpp))
+CORE_CS   := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.c, \
+              $(wildcard $(CORE_DIR)/cores/arduino/*.c))
+
 VARIANT_CPP := $(CORE_DIR)/variants/$(VARIANT)/variant.cpp
 
 LIB_CPPS  := $(wildcard $(NEO_DIR)/*.cpp)
@@ -48,7 +51,7 @@ CORE_OBJS := $(patsubst $(CORE_DIR)/cores/arduino/%.cpp,$(BUILD_DIR)/core_%.o,$(
              $(BUILD_DIR)/variant.o
 
 LIB_OBJS  := $(patsubst $(NEO_DIR)/%.cpp,$(BUILD_DIR)/neo_%.o,$(LIB_CPPS)) \
-             $(patsubst $(NEO_DIR)/%.c,$(BUILD_DIR)/neo_%.o,$(LIB_CS)) \
+             $(patsubst $(NEO_DIR)/%.c,$(BUILD_DIR)/neo_%.o,$(LIB_CS))
 
 SKETCH_CPP := Application/Application.cpp
 SKETCH_OBJ := $(BUILD_DIR)/$(PROJECT).o
@@ -59,9 +62,6 @@ all: $(BUILD_DIR)/$(PROJECT).bin
 	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).elf
 
 $(BUILD_DIR):
-	mkdir -p $@
-	
-$(BUILD_DIR)/tiny_arduino:
 	mkdir -p $@
 
 $(SKETCH_OBJ): $(SKETCH_CPP) | $(BUILD_DIR)
