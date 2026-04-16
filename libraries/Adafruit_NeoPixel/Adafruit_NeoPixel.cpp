@@ -46,26 +46,6 @@
 
 #include "Adafruit_NeoPixel.h"
 
-#if defined(TARGET_LPC1768)
-#include <time.h>
-#endif
-
-#if defined(NRF52) || defined(NRF52_SERIES)
-#include "nrf.h"
-
-// Interrupt is only disabled if there is no PWM device available
-// Note: Adafruit Bluefruit nrf52 does not use this option
-//#define NRF52_DISABLE_INT
-#endif
-
-#if defined(ARDUINO_ARCH_NRF52840)
-#if defined __has_include
-#if __has_include(<pinDefinitions.h>)
-#include <pinDefinitions.h>
-#endif
-#endif
-#endif
-
 #if defined(ARDUINO_ARCH_MBED)
 #include "mbed.h"  // Needed for DigitalOut and PinName
 #endif
@@ -87,12 +67,6 @@ Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t p, neoPixelType t)
   updateType(t);
   updateLength(n);
   setPin(p);
-
-#if defined(ESP32)
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-  espInit();
-#endif
-#endif
 }
 
 /*!
@@ -118,20 +92,6 @@ Adafruit_NeoPixel::Adafruit_NeoPixel()
   @brief   Deallocate Adafruit_NeoPixel object, set data pin back to INPUT.
 */
 Adafruit_NeoPixel::~Adafruit_NeoPixel() {
-#ifdef ARDUINO_ARCH_ESP32
-  // Release RMT resources (RMT channels and led_data)
-  // by indirectly calling into espShow()
-  memset(pixels, 0, numBytes);
-  numLEDs = numBytes = 0;
-  show();
-#endif
-
-
-#if defined(ARDUINO_ARCH_RP2040)
-  // Release any PIO
-  rp2040releasePIO();
-#endif
-
   free(pixels);
   if (pin >= 0)
     pinMode(pin, INPUT);
@@ -149,16 +109,6 @@ bool Adafruit_NeoPixel::begin(void) {
     begun = false;
     return false;
   }
-
-#if defined(ARDUINO_ARCH_RP2040)
-  // if we're calling begin() again, unclaim any existing PIO resc.
-  rp2040releasePIO();
-  if (! rp2040claimPIO()) {
-    begun = false;
-    return false;
-  }
-  
-#endif
 
   begun = true;
   return true;
@@ -391,30 +341,6 @@ static void ch32Show(GPIO_TypeDef* ch_port, uint32_t ch_pin, uint8_t* pixels, ui
 }
 #endif
 
-#if defined(ESP8266)
-// ESP8266 show() is external to enforce ICACHE_RAM_ATTR execution
-extern "C" IRAM_ATTR void espShow(uint16_t pin, uint8_t *pixels,
-                                  uint32_t numBytes, uint8_t type);
-#elif defined(ESP32)
-extern "C" void espShow(uint16_t pin, uint8_t *pixels, uint32_t numBytes,
-                        uint8_t type);
-
-#endif // ESP8266
-
-#if defined(K210)
-#define KENDRYTE_K210 1
-#endif
-
-#if defined(KENDRYTE_K210)
-extern "C" void k210Show(uint8_t pin, uint8_t *pixels, uint32_t numBytes,
-                         boolean is800KHz);
-#endif // KENDRYTE_K210
-
-
-#if defined(ARDUINO_ARCH_PSOC6)
-extern "C" void psoc6_show(uint8_t pin, uint8_t *pixels, uint32_t numBytes,
-                         boolean is800KHz);
-#endif
 /*!
   @brief   Transmit pixel data in RAM to NeoPixels.
   @note    On most architectures, interrupts are temporarily disabled in
@@ -452,16 +378,6 @@ void Adafruit_NeoPixel::show(void) {
     // accessing the PORT. The code takes an initial 'snapshot' of the PORT
     // state, computes 'pin high' and 'pin low' values, and writes these back
     // to the PORT register as needed.
-
-  // NRF52 may use PWM + DMA (if available), may not need to disable interrupt
-  // ESP32 may not disable interrupts because espShow() uses RMT which tries to acquire locks
-#if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
-  noInterrupts(); // Need 100% focus on instruction timing
-#endif
-
-#if defined(ARDUINO_ARCH_PSOC6)
-  psoc6_show(pin, pixels, numBytes, is800KHz);
-#endif
 
 #if defined(__AVR__)
   // AVR MCUs -- ATmega & ATtiny (no XMEGA) ---------------------------------
@@ -3331,10 +3247,6 @@ if(is800KHz) {
 #endif
 
   // END ARCHITECTURE SELECT ------------------------------------------------
-
-#if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
-  interrupts();
-#endif
 
   endTime = micros(); // Save EOD time for latch on next call
 }
