@@ -61,9 +61,6 @@ extern void delay( unsigned long dwMs ) ;
  *
  * \param dwUs the number of microseconds to pause (uint32_t)
  */
-#if defined(__SAMD51__)
-extern void delayMicroseconds( unsigned int );
-#else
 static __inline__ void delayMicroseconds( unsigned int ) __attribute__((always_inline, unused)) ;
 static __inline__ void delayMicroseconds( unsigned int usec )
 {
@@ -100,7 +97,6 @@ static __inline__ void delayMicroseconds( unsigned int usec )
   // https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
   // https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html#Volatile
 }
-#endif
 
 #ifdef __cplusplus
 }

@@ -72,10 +72,8 @@ void loop( void ) ;
 #ifdef __cplusplus
   #include "WCharacter.h"
   #include "WString.h"
-  #include "Tone.h"
   #include "WMath.h"
   #include "HardwareSerial.h"
-  #include "pulse.h"
 #endif
 #include "delay.h"
 #ifdef __cplusplus
@@ -88,7 +86,6 @@ void loop( void ) ;
 #include "wiring.h"
 #include "wiring_digital.h"
 #include "wiring_analog.h"
-#include "wiring_shift.h"
 #include "WInterrupts.h"
 
 // undefine stdlib's abs if encountered

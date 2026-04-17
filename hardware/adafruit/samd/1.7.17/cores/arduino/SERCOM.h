@@ -238,28 +238,14 @@ class SERCOM
 		uint8_t readDataWIRE( void ) ;
 		int8_t getSercomIndex(void);
                 uint32_t getSercomFreqRef(void);
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-		// SERCOM clock source override is only available on
-		// SAMD51 (not 21) ... but these functions are declared
-		// regardless so user code doesn't need ifdefs or lengthy
-		// comments explaining the different situations -- these
-		// just compile to nothing on SAMD21.
-		void setClockSource(int8_t idx, SercomClockSource src, bool core);
-		SercomClockSource getClockSource(void) { return clockSource; };
-		uint32_t getFreqRef(void) { return freqRef; };
-#else
-		// The equivalent SAMD21 dummy functions...
+		// SAMD21 dummy functions (clock source override only exists on SAMD51).
 		void setClockSource(int8_t idx, SercomClockSource src, bool core) { (void)idx; (void)src; (void)core; };
 		SercomClockSource getClockSource(void) { return SERCOM_CLOCK_SOURCE_FCPU; };
 		uint32_t getFreqRef(void) { return F_CPU; };
-#endif
 
           private:
                 Sercom *sercom;
                 uint32_t freqRef = 48000000ul; // Frequency corresponding to clockSource
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-                SercomClockSource clockSource;
-#endif
 		uint8_t calculateBaudrateSynchronous(uint32_t baudrate);
 		uint32_t division(uint32_t dividend, uint32_t divisor) ;
 		void initClockNVIC( void ) ;

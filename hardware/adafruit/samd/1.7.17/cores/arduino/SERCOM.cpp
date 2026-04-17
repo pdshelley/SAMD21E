@@ -30,24 +30,6 @@
 SERCOM::SERCOM(Sercom* s)
 {
   sercom = s;
-
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-  // A briefly-available but now deprecated feature had the SPI clock source
-  // set via a compile-time setting (MAX_SPI)...problem was this affected
-  // ALL SERCOMs, whereas some (anything read/write, e.g. SD cards) should
-  // not exceed the standard 24 MHz setting.  Newer code, if it needs faster
-  // write-only SPI (e.g. to screen), should override the SERCOM clock on a
-  // per-peripheral basis.  Nonetheless, we check SERCOM_SPI_FREQ_REF here
-  // (MAX_SPI * 2) to retain compatibility with any interim projects that
-  // might have relied on the compile-time setting.  But please, don't.
-#if SERCOM_SPI_FREQ_REF == F_CPU // F_CPU clock = GCLK0
-  clockSource = SERCOM_CLOCK_SOURCE_100M;
- #elif SERCOM_SPI_FREQ_REF == 48000000  // 48 MHz clock = GCLK1 (standard)
-  clockSource = SERCOM_CLOCK_SOURCE_48M;
- #elif SERCOM_SPI_FREQ_REF == 100000000 // 100 MHz clock = GCLK2
-  clockSource = SERCOM_CLOCK_SOURCE_100M;
- #endif
-#endif // end __SAMD51__
 }
 
 /* =========================
@@ -226,18 +208,11 @@ void SERCOM::initSPI(SercomSpiTXPad mosi, SercomRXPad miso, SercomSpiCharSize ch
   resetSPI();
   initClockNVIC();
 
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-  sercom->SPI.CTRLA.reg = SERCOM_SPI_CTRLA_MODE(0x3) | // master mode
-                          SERCOM_SPI_CTRLA_DOPO(mosi) |
-                          SERCOM_SPI_CTRLA_DIPO(miso) |
-                          dataOrder << SERCOM_SPI_CTRLA_DORD_Pos;
-#else
   //Setting the CTRLA register
   sercom->SPI.CTRLA.reg = SERCOM_SPI_CTRLA_MODE_SPI_MASTER |
                           SERCOM_SPI_CTRLA_DOPO(mosi) |
                           SERCOM_SPI_CTRLA_DIPO(miso) |
                           dataOrder << SERCOM_SPI_CTRLA_DORD_Pos;
-#endif
 
   //Setting the CTRLB register
   sercom->SPI.CTRLB.reg = SERCOM_SPI_CTRLB_CHSIZE(charSize) |
@@ -739,38 +714,6 @@ uint8_t SERCOM::readDataWIRE( void )
   }
 }
 
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-
-static const struct {
-  Sercom   *sercomPtr;
-  uint8_t   id_core;
-  uint8_t   id_slow;
-  IRQn_Type irq[4];
-} sercomData[] = {
-  { SERCOM0, SERCOM0_GCLK_ID_CORE, SERCOM0_GCLK_ID_SLOW,
-    SERCOM0_0_IRQn, SERCOM0_1_IRQn, SERCOM0_2_IRQn, SERCOM0_3_IRQn },
-  { SERCOM1, SERCOM1_GCLK_ID_CORE, SERCOM1_GCLK_ID_SLOW,
-    SERCOM1_0_IRQn, SERCOM1_1_IRQn, SERCOM1_2_IRQn, SERCOM1_3_IRQn },
-  { SERCOM2, SERCOM2_GCLK_ID_CORE, SERCOM2_GCLK_ID_SLOW,
-    SERCOM2_0_IRQn, SERCOM2_1_IRQn, SERCOM2_2_IRQn, SERCOM2_3_IRQn },
-  { SERCOM3, SERCOM3_GCLK_ID_CORE, SERCOM3_GCLK_ID_SLOW,
-    SERCOM3_0_IRQn, SERCOM3_1_IRQn, SERCOM3_2_IRQn, SERCOM3_3_IRQn },
-  { SERCOM4, SERCOM4_GCLK_ID_CORE, SERCOM4_GCLK_ID_SLOW,
-    SERCOM4_0_IRQn, SERCOM4_1_IRQn, SERCOM4_2_IRQn, SERCOM4_3_IRQn },
-  { SERCOM5, SERCOM5_GCLK_ID_CORE, SERCOM5_GCLK_ID_SLOW,
-    SERCOM5_0_IRQn, SERCOM5_1_IRQn, SERCOM5_2_IRQn, SERCOM5_3_IRQn },
-#if defined(SERCOM6)
-  { SERCOM6, SERCOM6_GCLK_ID_CORE, SERCOM6_GCLK_ID_SLOW,
-    SERCOM6_0_IRQn, SERCOM6_1_IRQn, SERCOM6_2_IRQn, SERCOM6_3_IRQn },
-#endif
-#if defined(SERCOM7)
-  { SERCOM7, SERCOM7_GCLK_ID_CORE, SERCOM7_GCLK_ID_SLOW,
-    SERCOM7_0_IRQn, SERCOM7_1_IRQn, SERCOM7_2_IRQn, SERCOM7_3_IRQn },
-#endif
-};
-
-#else // end if SAMD51 (prob SAMD21)
-
 static const struct {
   Sercom   *sercomPtr;
   uint8_t   clock;
@@ -788,8 +731,6 @@ static const struct {
 #endif
 };
 
-#endif // end !SAMD51
-
 int8_t SERCOM::getSercomIndex(void) {
   for(uint8_t i=0; i<(sizeof(sercomData) / sizeof(sercomData[0])); i++) {
     if(sercom == sercomData[i].sercomPtr) return i;
@@ -799,113 +740,14 @@ int8_t SERCOM::getSercomIndex(void) {
 
 uint32_t SERCOM::getSercomFreqRef(void)
 {
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-  int8_t idx = getSercomIndex();
-  uint8_t gen = 1; // default to GCLK1 (48 MHz) if we can't resolve
-
-  if (idx >= 0)
-  {
-    uint8_t pch = sercomData[idx].id_core;
-    gen = GCLK->PCHCTRL[pch].bit.GEN;
-  }
-
-  switch (gen)
-  {
-  case 0:
-    freqRef = 100000000UL;
-    break;
-  case 1:
-    freqRef = 48000000UL;
-    break;
-  case 2:
-    freqRef = 100000000UL;
-    break;
-  case 3:
-    freqRef = 32768UL;
-    break;
-  case 4:
-    freqRef = 12000000UL;
-    break;
-  default:
-    freqRef = 48000000UL;
-    break;
-  }
-#else
   freqRef = SystemCoreClock;
-#endif
-
   return freqRef;
 }
-
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-// This is currently for overriding an SPI SERCOM's clock source only --
-// NOT for UART or WIRE SERCOMs, where it will have unintended consequences.
-// It does not check.
-// SERCOM clock source override is available only on SAMD51 (not 21).
-// A dummy function for SAMD21 (compiles to nothing) is present in SERCOM.h
-// so user code doesn't require a lot of conditional situations.
-void SERCOM::setClockSource(int8_t idx, SercomClockSource src, bool core) {
-
-  if(src == SERCOM_CLOCK_SOURCE_NO_CHANGE) return;
-
-  uint8_t clk_id = core ? sercomData[idx].id_core : sercomData[idx].id_slow;
-
-  GCLK->PCHCTRL[clk_id].bit.CHEN = 0;     // Disable timer
-  while(GCLK->PCHCTRL[clk_id].bit.CHEN);  // Wait for disable
-
-  if(core) clockSource = src; // Save SercomClockSource value
-
-  // From cores/arduino/startup.c:
-  // GCLK0 = F_CPU (this is 120 MHz and exceeds SERCOM maximum)
-  // GCLK1 = 48 MHz
-  // GCLK2 = 100 MHz
-  // GCLK3 = XOSC32K
-  // GCLK4 = 12 MHz
-  if(src == SERCOM_CLOCK_SOURCE_FCPU) {
-    GCLK->PCHCTRL[clk_id].reg =
-        GCLK_PCHCTRL_GEN_GCLK2_Val | (1 << GCLK_PCHCTRL_CHEN_Pos); // Guard Sercom from exceeding 100 MHz maximum
-    if (core)
-      freqRef = 100000000; // Save clock frequency value
-  }
-  else if (src == SERCOM_CLOCK_SOURCE_48M)
-  {
-    GCLK->PCHCTRL[clk_id].reg =
-      GCLK_PCHCTRL_GEN_GCLK1_Val | (1 << GCLK_PCHCTRL_CHEN_Pos);
-    if(core) freqRef = 48000000;
-  } else if(src == SERCOM_CLOCK_SOURCE_100M) {
-    GCLK->PCHCTRL[clk_id].reg =
-      GCLK_PCHCTRL_GEN_GCLK2_Val | (1 << GCLK_PCHCTRL_CHEN_Pos);
-    if(core) freqRef = 100000000;
-  } else if(src == SERCOM_CLOCK_SOURCE_32K) {
-    GCLK->PCHCTRL[clk_id].reg =
-      GCLK_PCHCTRL_GEN_GCLK3_Val | (1 << GCLK_PCHCTRL_CHEN_Pos);
-    if(core) freqRef = 32768;
-  } else if(src == SERCOM_CLOCK_SOURCE_12M) {
-    GCLK->PCHCTRL[clk_id].reg =
-      GCLK_PCHCTRL_GEN_GCLK4_Val | (1 << GCLK_PCHCTRL_CHEN_Pos);
-    if(core) freqRef = 12000000;
-  }
-
-  while(!GCLK->PCHCTRL[clk_id].bit.CHEN); // Wait for clock enable
-}
-#endif
 
 void SERCOM::initClockNVIC( void )
 {
   int8_t idx = getSercomIndex();
   if(idx < 0) return; // We got a problem here
-
-#if defined(__SAMD51__) || defined(__SAME51__) || defined(__SAME53__) || defined(__SAME54__)
-
-  for(uint8_t i=0; i<4; i++) {
-    NVIC_ClearPendingIRQ(sercomData[idx].irq[i]);
-    NVIC_SetPriority(sercomData[idx].irq[i], SERCOM_NVIC_PRIORITY);
-    NVIC_EnableIRQ(sercomData[idx].irq[i]);
-  }
-
-  setClockSource(idx, clockSource, true); // true  = core clock
-
-#else // end if SAMD51 (prob SAMD21)
 
   uint8_t   clockId = sercomData[idx].clock;
   IRQn_Type IdNvic  = sercomData[idx].irqn;
@@ -922,8 +764,6 @@ void SERCOM::initClockNVIC( void )
     GCLK_CLKCTRL_CLKEN;
 
   while(GCLK->STATUS.reg & GCLK_STATUS_SYNCBUSY); // Wait for synchronization
-
-#endif // end !SAMD51
 
   getSercomFreqRef();
 }
