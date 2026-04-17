@@ -1,9 +1,8 @@
 # Self-contained Makefile for Adafruit QT Py SAMD21 (M0) — pure C build.
 
-PROJECT     := SAMD21E
-BUILD_DIR   := build
-TOOLCHAIN   := tools/arm-none-eabi-gcc/9-2019q4/bin
-VARIANT_DIR := hardware/adafruit/samd/1.7.17/variants/qtpy_m0
+PROJECT   := SAMD21E
+BUILD_DIR := .build
+TOOLCHAIN := tools/arm-none-eabi-gcc/9-2019q4/bin
 
 CC      := $(TOOLCHAIN)/arm-none-eabi-gcc
 OBJCOPY := $(TOOLCHAIN)/arm-none-eabi-objcopy
@@ -21,17 +20,12 @@ CFLAGS := \
 
 INCLUDES := \
   -ISources/Support \
-  -I$(VARIANT_DIR) \
   -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
   -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL
 
-SUPPORT_SRCS := $(wildcard Sources/Support/*.c)
-VARIANT_SRCS := $(VARIANT_DIR)/variant.c
-SKETCH_SRCS  := Sources/Application/Application.c
+SRCS := $(wildcard Sources/Support/*.c) Sources/Application/Application.c
 
-ALL_SRCS := $(SUPPORT_SRCS) $(VARIANT_SRCS) $(SKETCH_SRCS)
-
-OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(ALL_SRCS))
+OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
 
 .PHONY: all clean
 

@@ -13,14 +13,9 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		DA8CFA1A2F80CDD500489BD2 /* Application */ = {
+		DAA9D27A2F92A233002FC9D8 /* Sources */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Application;
-			sourceTree = "<group>";
-		};
-		DA8CFF942F80CDF800489BD2 /* hardware */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = hardware;
+			path = Sources;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,8 +27,7 @@
 				DA8CFA162F80CDB200489BD2 /* README.md */,
 				DA8CFA172F80CDC400489BD2 /* Makefile */,
 				DA8CFA182F80CDC900489BD2 /* LICENSE */,
-				DA8CFA1A2F80CDD500489BD2 /* Application */,
-				DA8CFF942F80CDF800489BD2 /* hardware */,
+				DAA9D27A2F92A233002FC9D8 /* Sources */,
 			);
 			sourceTree = "<group>";
 		};
@@ -50,8 +44,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				DA8CFA1A2F80CDD500489BD2 /* Application */,
-				DA8CFF942F80CDF800489BD2 /* hardware */,
+				DAA9D27A2F92A233002FC9D8 /* Sources */,
 			);
 			name = SAMD21E;
 			packageProductDependencies = (

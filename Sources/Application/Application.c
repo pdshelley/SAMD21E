@@ -1,6 +1,6 @@
 #include <sam.h>
 #include "delay.h"
-#include "variant.h"
+#include "pin-mapping.h"
 
 /*
  * Minimal NeoPixel (WS2812B) driver for the QT Py M0.

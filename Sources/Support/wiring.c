@@ -13,7 +13,7 @@
 */
 
 #include <sam.h>
-#include "variant.h"
+#include "pin-mapping.h"
 
 /*
  * System Core Clock is at 1MHz (8MHz/8) at Reset.

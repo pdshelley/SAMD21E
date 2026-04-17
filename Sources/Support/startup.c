@@ -13,7 +13,7 @@
 */
 
 #include <sam.h>
-#include "variant.h"
+#include "pin-mapping.h"
 
 /* Constants for Clock generators */
 #define GENERIC_CLOCK_GENERATOR_MAIN      (0u)

@@ -9,7 +9,7 @@ Current stage: Builds cleanly and uploads via bossac (NeoPixel-only, USB disable
 make clean && make
 ```
 
-This produces: `build/SAMD21E.bin` (correctly offset at 0x2000)
+This produces: `..build/SAMD21E.bin` (correctly offset at 0x2000)
 
 ## Upload
 
@@ -20,7 +20,7 @@ This produces: `build/SAMD21E.bin` (correctly offset at 0x2000)
 2. Upload with bossac (run immediately after double-tap):
 
 ```bash
-tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x2000 build/SAMD21E.bin
+tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x2000 .build/SAMD21E.bin
 ```
 
 **Note:** The port (`cu.usbmodem1101`) may change. If you get "No device found", run this first to check:
@@ -36,7 +36,7 @@ Then update the `-p` value and retry the bossac command right after double-tappi
 ```bash
 make clean && make
 # Double-tap reset on QT Py
-tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x2000 build/SAMD21E.bin
+tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x2000 .build/SAMD21E.bin
 ```
 
 Success: Board auto-resets and runs the sketch.

@@ -13,7 +13,7 @@
 */
 
 #include <sam.h>
-#include "variant.h"
+#include "pin-mapping.h"
 
 /*
  * QT Py M0 pin-to-PORT mapping table.

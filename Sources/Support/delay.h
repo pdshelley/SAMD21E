@@ -16,7 +16,7 @@
 #define _DELAY_
 
 #include <stdint.h>
-#include "variant.h"
+#include "pin-mapping.h"
 
 extern unsigned long millis(void);
 extern unsigned long micros(void);

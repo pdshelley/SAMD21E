@@ -22,7 +22,7 @@ extern void app_main(void);
 int main(void)
 {
   init();         /* Start SysTick @ 1 ms (wiring.c) */
-  initVariant();  /* Board-specific init — NeoPixel power (variant.c) */
+  initVariant();  /* Board-specific init — NeoPixel power (pin-mapping.c) */
   app_init();
 
   for (;;)
