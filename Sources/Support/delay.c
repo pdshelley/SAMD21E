@@ -56,8 +56,7 @@ unsigned long micros(void) {
     } while ((pend != pend2) || (count != count2) || (ticks < ticks2));
 
     return ((count + pend) * 1000) +
-           (((SysTick->LOAD - ticks) * (1048576 / (VARIANT_MCK / 1000000))) >>
-            20);
+           (((SysTick->LOAD - ticks) * (1048576 / (F_CPU / 1000000))) >> 20);
 }
 
 void delay(unsigned long ms) {

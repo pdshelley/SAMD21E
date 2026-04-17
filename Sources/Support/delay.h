@@ -15,7 +15,6 @@
 #ifndef _DELAY_
 #define _DELAY_
 
-#include "pin-mapping.h"
 #include <stdint.h>
 
 extern unsigned long millis(void);
@@ -35,7 +34,7 @@ static __inline__ void delayMicroseconds(unsigned int usec) {
     if (usec == 0)
         return;
 
-    uint32_t n = usec * (VARIANT_MCK / 1000000) / 3;
+    uint32_t n = usec * (F_CPU / 1000000) / 3;
 
     __asm__ __volatile__("1:              \n"
                          "   sub %0, #1   \n"

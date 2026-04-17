@@ -12,8 +12,9 @@
   See the GNU Lesser General Public License for more details.
 */
 
-#include "pin-mapping.h"
 #include <sam.h>
+
+#define OSC32K_HZ 32768ul /* internal OSC32K reference frequency */
 
 /* Constants for Clock generators */
 #define GENERIC_CLOCK_GENERATOR_MAIN (0u)
@@ -94,8 +95,7 @@ void SystemInit(void) {
 
     SYSCTRL->DFLLMUL.reg =
         SYSCTRL_DFLLMUL_CSTEP(31) | SYSCTRL_DFLLMUL_FSTEP(511) |
-        SYSCTRL_DFLLMUL_MUL((VARIANT_MCK + VARIANT_MAINOSC / 2) /
-                            VARIANT_MAINOSC);
+        SYSCTRL_DFLLMUL_MUL((F_CPU + OSC32K_HZ / 2) / OSC32K_HZ);
 
     while ((SYSCTRL->PCLKSR.reg & SYSCTRL_PCLKSR_DFLLRDY) == 0)
         ;
@@ -165,7 +165,7 @@ void SystemInit(void) {
     PM->APBBSEL.reg = PM_APBBSEL_APBBDIV_DIV1_Val;
     PM->APBCSEL.reg = PM_APBCSEL_APBCDIV_DIV1_Val;
 
-    SystemCoreClock = VARIANT_MCK;
+    SystemCoreClock = F_CPU;
 
     /* 8) Load ADC factory calibration values */
     {

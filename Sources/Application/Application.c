@@ -26,7 +26,7 @@ void app_init(void) {
 
 void app_main(void) {
     PORTA_OUTSET = PA02;
-    delay(500); /* high for 500 ms */
+    delay(1000); /* high for 1000 ms */
     PORTA_OUTCLR = PA02;
-    delay(500); /* low  for 500 ms */
+    delay(1000); /* low  for 1000 ms */
 }
