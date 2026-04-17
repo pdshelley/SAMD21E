@@ -1,12 +1,5 @@
 /*!
  * @file Adafruit_NeoPixel.h
- *
- * Stripped-down version retaining only what is used by Application.cpp:
- *   - Adafruit_NeoPixel(n, pin, type) constructor + destructor
- *   - begin(), show(), setBrightness(), setPixelColor(n, uint32_t),
- *     Color(r,g,b), clear()
- *   - canShow() (called internally by show())
- *   - setPin(), updateLength(), updateType() (called by constructor)
  */
 
 #ifndef ADAFRUIT_NEOPIXEL_H

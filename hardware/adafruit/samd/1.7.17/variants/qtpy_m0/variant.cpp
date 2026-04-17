@@ -12,15 +12,6 @@
   See the GNU Lesser General Public License for more details.
 */
 
-/*
- * QT Py M0 variant, trimmed to what the NeoPixel-only example uses:
- *   - g_APinDescription[] (referenced by pinMode/digitalWrite/NeoPixel)
- *   - initVariant() that powers the on-board NeoPixel
- *
- * SERCOM/Uart instantiations and the SERCOM0_Handler ISR have been removed
- * along with the Uart/SERCOM/Print sources.
- */
-
 #include "variant.h"
 #include "Arduino.h"
 

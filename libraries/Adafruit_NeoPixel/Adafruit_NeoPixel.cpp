@@ -1,9 +1,5 @@
 /*!
  * @file Adafruit_NeoPixel.cpp
- *
- * Stripped-down version retaining only what is used by Application.cpp
- * on the SAMD21 (QT Py M0 / SAMD21E18A) target. All other architecture
- * paths, the CH32 helper, and unused APIs have been removed.
  */
 
 #include "Adafruit_NeoPixel.h"

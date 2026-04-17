@@ -1,8 +1,5 @@
 /*
   Arduino.h - Minimal main include for SAMD21 (QT Py M0) core.
-  Stripped to just what the current NeoPixel sketch needs on top of CMSIS +
-  variant glue. All Arduino C++ I/O (Print/Stream/String), Uart/SERCOM,
-  analog, AVR shims, interrupt helpers and friends have been removed.
 */
 
 #ifndef Arduino_h

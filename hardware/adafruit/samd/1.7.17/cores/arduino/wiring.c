@@ -12,13 +12,6 @@
   See the GNU Lesser General Public License for more details.
 */
 
-/*
- * Trimmed core init for the NeoPixel-only example.
- * The original Arduino init() also clocked SERCOM, timers, ADC and DAC and
- * called analogReference(). Those blocks have been removed along with the
- * SERCOM/Uart/analog source files.
- */
-
 #include "Arduino.h"
 
 #ifdef __cplusplus

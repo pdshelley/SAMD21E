@@ -16,11 +16,6 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*
- * SystemInit() for SAMD21 + CRYSTALLESS (QT Py M0 / SAMD21E18A).
- * SAMD51 clock configuration and the has-crystal branches have been removed.
- */
-
 #include "sam.h"
 #include "variant.h"
 

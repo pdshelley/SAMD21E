@@ -16,11 +16,6 @@
   Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-/*
- * Cortex-M0+ (SAMD21) exception + IRQ vector table. The SAMD51 vector table
- * and Cortex-M4 FPU init have been removed.
- */
-
 #include <sam.h>
 #include <variant.h>
 #include <stdio.h>
