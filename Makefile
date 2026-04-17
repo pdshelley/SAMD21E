@@ -1,18 +1,24 @@
-# Self-contained Makefile for Adafruit QT Py SAMD21 (M0) — pure C build.
+# Self-contained Makefile for Adafruit QT Py SAMD21 (M0) — Embedded Swift build.
 
 PROJECT   := SAMD21E
 BUILD_DIR := .build
 TOOLCHAIN := tools/arm-none-eabi-gcc/9-2019q4/bin
 
-CC      := $(TOOLCHAIN)/arm-none-eabi-gcc
+# C/C++ uses clang targeting ARM so the object format matches swiftc output
+CC      := clang
 OBJCOPY := $(TOOLCHAIN)/arm-none-eabi-objcopy
 SIZE    := $(TOOLCHAIN)/arm-none-eabi-size
+SWIFTC  := swiftc
+
+TARGET_TRIPLE := armv6m-none-none-eabi
 
 CFLAGS := \
+  --target=$(TARGET_TRIPLE) \
   -mcpu=cortex-m0plus -mthumb \
-  -g -Os -Werror=return-type \
+  -mfloat-abi=soft \
+  -g -Os \
   -ffunction-sections -fdata-sections \
-  -nostdlib --param max-inline-insns-single=500 \
+  -nostdlib \
   -std=gnu11 \
   -DF_CPU=48000000L \
   -D__SAMD21E18A__ -DCRYSTALLESS \
@@ -23,9 +29,22 @@ INCLUDES := \
   -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
   -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL
 
-SRCS := $(wildcard Sources/Support/*.c) Sources/Application/Application.c
+SWIFT_FLAGS := \
+  -target $(TARGET_TRIPLE) \
+  -enable-experimental-feature Embedded \
+  -wmo \
+  -Onone \
+  -import-bridging-header Sources/Support/BridgingHeader.h \
+  $(foreach f,$(CFLAGS),-Xcc $(f)) \
+  $(foreach f,$(INCLUDES),-Xcc $(f))
 
-OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(SRCS))
+# C support files only (Application.swift replaces Application.c)
+C_SRCS := $(wildcard Sources/Support/*.c)
+C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
+
+SWIFT_OBJ := $(BUILD_DIR)/Sources/Application/Application.o
+
+ALL_OBJS := $(C_OBJS) $(SWIFT_OBJ)
 
 .PHONY: all clean
 
@@ -36,8 +55,13 @@ $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/$(PROJECT).elf: $(OBJS)
-	$(CC) -Os -Wl,--gc-sections \
+$(SWIFT_OBJ): Sources/Application/Application.swift Sources/Support/BridgingHeader.h | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(SWIFTC) $(SWIFT_FLAGS) -c $< -o $@
+
+# Link with arm-none-eabi-gcc so the bundled nano/nosys specs and linker script work
+$(BUILD_DIR)/$(PROJECT).elf: $(ALL_OBJS)
+	$(TOOLCHAIN)/arm-none-eabi-gcc -Os -Wl,--gc-sections \
 		-Ttools/linker_scripts/gcc/flash_with_bootloader.ld \
 		-Wl,--section-start=.text=0x2000 \
 		-mcpu=cortex-m0plus -mthumb \
