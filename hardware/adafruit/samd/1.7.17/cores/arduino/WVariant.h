@@ -129,12 +129,6 @@ typedef enum _EPWMChannel
 #endif // __SAMD21J18A__
 } EPWMChannel ;
 
-extern const void* g_apTCInstances[TCC_INST_NUM+TC_INST_NUM] ;
-
-#define GetTCNumber( x ) ( (x) >> 8 )
-#define GetTCChannelNumber( x ) ( (x) & 0xff )
-#define GetTC( x ) ( g_apTCInstances[(x) >> 8] )
-
 typedef enum _EPortType
 {
   NOT_A_PORT=-1,

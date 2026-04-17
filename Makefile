@@ -1,5 +1,6 @@
 # Self-contained Makefile for Adafruit QT Py SAMD21 (M0)
-# Stage: Wildcard core sources + small filter-out (prepares for incremental pruning)
+# Core has been stripped to the minimum needed by the NeoPixel-only sketch;
+# the wildcard picks up exactly what's left in cores/arduino/.
 
 PROJECT   := SAMD21E
 BUILD_DIR := build
@@ -27,18 +28,13 @@ CXXFLAGS := $(COMMON_FLAGS) -std=gnu++11 -fno-threadsafe-statics -fno-rtti -fno-
 
 INCLUDES := -I$(CORE_DIR)/cores/arduino \
             -I$(CORE_DIR)/variants/$(VARIANT) \
-            -I$(CORE_DIR)/libraries/SPI \
-            -I$(CORE_DIR)/libraries/Adafruit_ZeroDMA \
             -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
-            -Itools/CMSIS/5.4.0/CMSIS/DSP/Include \
             -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL \
             -I$(NEO_DIR)
 
-# All core sources - exclude USB (and a few other things we don't need yet)
-CORE_CPPS := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.cpp, \
-              $(wildcard $(CORE_DIR)/cores/arduino/*.cpp))
-CORE_CS   := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.c, \
-              $(wildcard $(CORE_DIR)/cores/arduino/*.c))
+# All remaining core sources after pruning.
+CORE_CPPS := $(wildcard $(CORE_DIR)/cores/arduino/*.cpp)
+CORE_CS   := $(wildcard $(CORE_DIR)/cores/arduino/*.c)
 
 VARIANT_CPP := $(CORE_DIR)/variants/$(VARIANT)/variant.cpp
 
