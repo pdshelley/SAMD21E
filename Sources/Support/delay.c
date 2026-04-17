@@ -12,8 +12,8 @@
   See the GNU Lesser General Public License for more details.
 */
 
-#include <sam.h>
 #include "delay.h"
+#include <sam.h>
 
 /*
  * System Core Clock is at 1MHz (8MHz/8) at Reset.
@@ -24,65 +24,54 @@ uint32_t SystemCoreClock = 1000000ul;
 /*
  * Start the 1ms SysTick used by millis() / micros() / delay().
  */
-void systick_init(void)
-{
-  if ( SysTick_Config( SystemCoreClock / 1000 ) )
-  {
-    while ( 1 ) ;
-  }
-  NVIC_SetPriority( SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 2 );
+void systick_init(void) {
+    if (SysTick_Config(SystemCoreClock / 1000)) {
+        while (1)
+            ;
+    }
+    NVIC_SetPriority(SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 2);
 }
 
 /** Tick counter (ms) incremented by SysTick_Handler each millisecond */
 static volatile uint32_t _ulTickCount = 0;
 
-unsigned long millis(void)
-{
-  return _ulTickCount;
-}
+unsigned long millis(void) { return _ulTickCount; }
 
-unsigned long micros(void)
-{
-  uint32_t ticks, ticks2;
-  uint32_t pend, pend2;
-  uint32_t count, count2;
+unsigned long micros(void) {
+    uint32_t ticks, ticks2;
+    uint32_t pend, pend2;
+    uint32_t count, count2;
 
-  ticks2 = SysTick->VAL;
-  pend2  = !!(SCB->ICSR & SCB_ICSR_PENDSTSET_Msk);
-  count2 = _ulTickCount;
-
-  do
-  {
-    ticks  = ticks2;
-    pend   = pend2;
-    count  = count2;
     ticks2 = SysTick->VAL;
-    pend2  = !!(SCB->ICSR & SCB_ICSR_PENDSTSET_Msk);
+    pend2 = !!(SCB->ICSR & SCB_ICSR_PENDSTSET_Msk);
     count2 = _ulTickCount;
-  } while ((pend != pend2) || (count != count2) || (ticks < ticks2));
 
-  return ((count + pend) * 1000) +
-         (((SysTick->LOAD - ticks) * (1048576 / (VARIANT_MCK / 1000000))) >> 20);
+    do {
+        ticks = ticks2;
+        pend = pend2;
+        count = count2;
+        ticks2 = SysTick->VAL;
+        pend2 = !!(SCB->ICSR & SCB_ICSR_PENDSTSET_Msk);
+        count2 = _ulTickCount;
+    } while ((pend != pend2) || (count != count2) || (ticks < ticks2));
+
+    return ((count + pend) * 1000) +
+           (((SysTick->LOAD - ticks) * (1048576 / (VARIANT_MCK / 1000000))) >>
+            20);
 }
 
-void delay(unsigned long ms)
-{
-  if (ms == 0)
-    return;
+void delay(unsigned long ms) {
+    if (ms == 0)
+        return;
 
-  uint32_t start = micros();
+    uint32_t start = micros();
 
-  while (ms > 0)
-  {
-    while (ms > 0 && (micros() - start) >= 1000)
-    {
-      ms--;
-      start += 1000;
+    while (ms > 0) {
+        while (ms > 0 && (micros() - start) >= 1000) {
+            ms--;
+            start += 1000;
+        }
     }
-  }
 }
 
-void SysTick_DefaultHandler(void)
-{
-  _ulTickCount++;
-}
+void SysTick_DefaultHandler(void) { _ulTickCount++; }

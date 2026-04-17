@@ -15,8 +15,8 @@
 #ifndef _DELAY_
 #define _DELAY_
 
-#include <stdint.h>
 #include "pin-mapping.h"
+#include <stdint.h>
 
 extern unsigned long millis(void);
 extern unsigned long micros(void);
@@ -31,19 +31,16 @@ extern void systick_init(void);
 static __inline__ void delayMicroseconds(unsigned int usec)
     __attribute__((always_inline, unused));
 
-static __inline__ void delayMicroseconds(unsigned int usec)
-{
-  if (usec == 0)
-    return;
+static __inline__ void delayMicroseconds(unsigned int usec) {
+    if (usec == 0)
+        return;
 
-  uint32_t n = usec * (VARIANT_MCK / 1000000) / 3;
+    uint32_t n = usec * (VARIANT_MCK / 1000000) / 3;
 
-  __asm__ __volatile__(
-    "1:              \n"
-    "   sub %0, #1   \n"
-    "   bne 1b       \n"
-    : "+r" (n)
-  );
+    __asm__ __volatile__("1:              \n"
+                         "   sub %0, #1   \n"
+                         "   bne 1b       \n"
+                         : "+r"(n));
 }
 
 #endif /* _DELAY_ */

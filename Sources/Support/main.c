@@ -13,22 +13,18 @@
 */
 
 extern void systick_init(void);
-extern void initVariant(void);
 
 /* Defined in Application.c */
 extern void app_init(void);
 extern void app_main(void);
 
-int main(void)
-{
-  systick_init(); /* Start SysTick @ 1 ms (delay.c) */
-  initVariant();  /* Board-specific init — NeoPixel power (pin-mapping.c) */
-  app_init();
+int main(void) {
+    systick_init(); /* Start SysTick @ 1 ms (delay.c) */
+    app_init();
 
-  for (;;)
-  {
-    app_main();
-  }
+    for (;;) {
+        app_main();
+    }
 
-  return 0;
+    return 0;
 }
