@@ -18,11 +18,6 @@
 			path = Application;
 			sourceTree = "<group>";
 		};
-		DA8CFA452F80CDE700489BD2 /* libraries */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = libraries;
-			sourceTree = "<group>";
-		};
 		DA8CFF942F80CDF800489BD2 /* hardware */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = hardware;
@@ -38,7 +33,6 @@
 				DA8CFA172F80CDC400489BD2 /* Makefile */,
 				DA8CFA182F80CDC900489BD2 /* LICENSE */,
 				DA8CFA1A2F80CDD500489BD2 /* Application */,
-				DA8CFA452F80CDE700489BD2 /* libraries */,
 				DA8CFF942F80CDF800489BD2 /* hardware */,
 			);
 			sourceTree = "<group>";
@@ -57,7 +51,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				DA8CFA1A2F80CDD500489BD2 /* Application */,
-				DA8CFA452F80CDE700489BD2 /* libraries */,
 				DA8CFF942F80CDF800489BD2 /* hardware */,
 			);
 			name = SAMD21E;
