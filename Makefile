@@ -16,6 +16,7 @@ CFLAGS := \
   --target=$(TARGET_TRIPLE) \
   -mcpu=cortex-m0plus -mthumb \
   -mfloat-abi=soft \
+  -fshort-enums \
   -g -Os \
   -ffunction-sections -fdata-sections \
   -nostdlib \
@@ -33,7 +34,8 @@ SWIFT_FLAGS := \
   -target $(TARGET_TRIPLE) \
   -enable-experimental-feature Embedded \
   -wmo \
-  -Onone \
+  -parse-as-library \
+  -Osize \
   -import-bridging-header Sources/Support/BridgingHeader.h \
   $(foreach f,$(CFLAGS),-Xcc $(f)) \
   $(foreach f,$(INCLUDES),-Xcc $(f))

@@ -7,22 +7,16 @@
 //
 // PA02 is bit 2, so the mask is (1 << 2) = 0x00000004.
 
-private let portaDirset = UnsafeMutablePointer<UInt32>(bitPattern: 0x41004408)!
-private let portaOutclr = UnsafeMutablePointer<UInt32>(bitPattern: 0x41004414)!
-private let portaOutset = UnsafeMutablePointer<UInt32>(bitPattern: 0x41004418)!
-
-private let pa02: UInt32 = 1 << 2
-
 @_cdecl("app_init")
 func appInit() {
-    portaDirset.pointee = pa02
-    portaOutclr.pointee = pa02
+    UnsafeMutablePointer<UInt32>(bitPattern: 0x41004408 as UInt)!.pointee = 1 << 2  // DIRSET: PA02 output
+    UnsafeMutablePointer<UInt32>(bitPattern: 0x41004414 as UInt)!.pointee = 1 << 2  // OUTCLR: start low
 }
 
 @_cdecl("app_main")
 func appMain() {
-    portaOutset.pointee = pa02
+    UnsafeMutablePointer<UInt32>(bitPattern: 0x41004418 as UInt)!.pointee = 1 << 2  // OUTSET: PA02 high
     delay(1000)
-    portaOutclr.pointee = pa02
+    UnsafeMutablePointer<UInt32>(bitPattern: 0x41004414 as UInt)!.pointee = 1 << 2  // OUTCLR: PA02 low
     delay(1000)
 }
