@@ -10,20 +10,9 @@
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
   See the GNU Lesser General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with this library; if not, write to the Free Software
-  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
 #include <sam.h>
-#include <variant.h>
-#include <stdio.h>
-
-/* RTOS Hooks */
-extern void svcHook(void);
-extern void pendSVHook(void);
-extern int sysTickHook(void);
 
 /* Default empty handler */
 void Dummy_Handler(void)
@@ -136,8 +125,8 @@ __attribute__ ((section(".isr_vector"))) const DeviceVectors exception_table =
 };
 
 extern int main(void);
+extern void SystemInit(void);
 
-/* This is called on processor reset to initialize the device and call main() */
 void Reset_Handler(void)
 {
   uint32_t *pSrc, *pDest;
@@ -152,7 +141,7 @@ void Reset_Handler(void)
   }
 
   /* Clear the zero section */
-  if ((&__data_start__ != &__data_end__) && (pSrc != pDest)) {
+  if (&__bss_start__ != &__bss_end__) {
     for (pDest = &__bss_start__; pDest < &__bss_end__; pDest++)
       *pDest = 0;
   }
@@ -165,13 +154,10 @@ void Reset_Handler(void)
     ;
 }
 
-/* Default Arduino systick handler */
+/* Tick counter maintained by SysTick_Handler (defined in delay.c) */
 extern void SysTick_DefaultHandler(void);
 
 void SysTick_Handler(void)
 {
-  if (sysTickHook())
-    return;
   SysTick_DefaultHandler();
 }
-

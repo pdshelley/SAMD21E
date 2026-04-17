@@ -12,23 +12,18 @@
   See the GNU Lesser General Public License for more details.
 */
 
+#include <sam.h>
 #include "delay.h"
-#include "Arduino.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/** Tick counter (ms) maintained by SysTick_Handler */
+/** Tick counter (ms) incremented by SysTick_Handler each millisecond */
 static volatile uint32_t _ulTickCount = 0;
 
-unsigned long millis( void )
+unsigned long millis(void)
 {
   return _ulTickCount;
 }
 
-/* Interrupt-compatible micros(). See original Arduino implementation. */
-unsigned long micros( void )
+unsigned long micros(void)
 {
   uint32_t ticks, ticks2;
   uint32_t pend, pend2;
@@ -40,9 +35,9 @@ unsigned long micros( void )
 
   do
   {
-    ticks = ticks2;
-    pend  = pend2;
-    count = count2;
+    ticks  = ticks2;
+    pend   = pend2;
+    count  = count2;
     ticks2 = SysTick->VAL;
     pend2  = !!(SCB->ICSR & SCB_ICSR_PENDSTSET_Msk);
     count2 = _ulTickCount;
@@ -52,17 +47,15 @@ unsigned long micros( void )
          (((SysTick->LOAD - ticks) * (1048576 / (VARIANT_MCK / 1000000))) >> 20);
 }
 
-void delay( unsigned long ms )
+void delay(unsigned long ms)
 {
-  if (ms == 0) {
+  if (ms == 0)
     return;
-  }
 
   uint32_t start = micros();
 
   while (ms > 0)
   {
-    yield();
     while (ms > 0 && (micros() - start) >= 1000)
     {
       ms--;
@@ -73,10 +66,5 @@ void delay( unsigned long ms )
 
 void SysTick_DefaultHandler(void)
 {
-  /* Increment tick count each ms */
   _ulTickCount++;
 }
-
-#ifdef __cplusplus
-}
-#endif

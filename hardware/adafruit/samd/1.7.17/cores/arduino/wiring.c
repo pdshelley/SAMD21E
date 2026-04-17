@@ -12,11 +12,8 @@
   See the GNU Lesser General Public License for more details.
 */
 
-#include "Arduino.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <sam.h>
+#include "variant.h"
 
 /*
  * System Core Clock is at 1MHz (8MHz/8) at Reset.
@@ -25,25 +22,13 @@ extern "C" {
 uint32_t SystemCoreClock = 1000000ul;
 
 /*
- * SAMD21 board initialization (minimal).
- *
- * At reset:
- *   - ResetHandler + SystemInit() have configured the system clock (48MHz).
- *   - All PORT lines are configured as inputs with input/output/pull disabled.
- * All this function still needs to do is start the 1 ms SysTick used by
- * millis() / micros() / delay().
+ * Start the 1ms SysTick used by millis() / micros() / delay().
  */
-void init( void )
+void init(void)
 {
-  /* Set SysTick to 1ms interval, common to all Cortex-M variants */
   if ( SysTick_Config( SystemCoreClock / 1000 ) )
   {
-    /* Capture error */
     while ( 1 ) ;
   }
   NVIC_SetPriority( SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 2 );
 }
-
-#ifdef __cplusplus
-}
-#endif
