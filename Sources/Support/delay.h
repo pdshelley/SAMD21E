@@ -21,6 +21,7 @@
 extern unsigned long millis(void);
 extern unsigned long micros(void);
 extern void delay(unsigned long ms);
+extern void systick_init(void);
 
 /*
  * Busy-wait for the given number of microseconds.

@@ -15,6 +15,24 @@
 #include <sam.h>
 #include "delay.h"
 
+/*
+ * System Core Clock is at 1MHz (8MHz/8) at Reset.
+ * It is switched to 48MHz in the Reset Handler (startup.c).
+ */
+uint32_t SystemCoreClock = 1000000ul;
+
+/*
+ * Start the 1ms SysTick used by millis() / micros() / delay().
+ */
+void systick_init(void)
+{
+  if ( SysTick_Config( SystemCoreClock / 1000 ) )
+  {
+    while ( 1 ) ;
+  }
+  NVIC_SetPriority( SysTick_IRQn, (1 << __NVIC_PRIO_BITS) - 2 );
+}
+
 /** Tick counter (ms) incremented by SysTick_Handler each millisecond */
 static volatile uint32_t _ulTickCount = 0;
 

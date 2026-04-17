@@ -12,7 +12,7 @@
   See the GNU Lesser General Public License for more details.
 */
 
-extern void init(void);
+extern void systick_init(void);
 extern void initVariant(void);
 
 /* Defined in Application.c */
@@ -21,7 +21,7 @@ extern void app_main(void);
 
 int main(void)
 {
-  init();         /* Start SysTick @ 1 ms (wiring.c) */
+  systick_init(); /* Start SysTick @ 1 ms (delay.c) */
   initVariant();  /* Board-specific init — NeoPixel power (pin-mapping.c) */
   app_init();
 
