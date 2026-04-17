@@ -60,14 +60,6 @@ protected:
   uint8_t wOffset;
   uint32_t endTime;
 
-#if defined(ARDUINO_ARCH_STM32) || \
-    defined(ARDUINO_ARCH_ARDUINO_CORE_STM32) || \
-    defined(ARDUINO_ARCH_CH32) || \
-    defined(_PY32_DEF_)
-  GPIO_TypeDef *gpioPort;
-  uint32_t gpioPin;
-#endif
-
 };
 
 #endif // ADAFRUIT_NEOPIXEL_H
