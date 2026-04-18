@@ -44,6 +44,10 @@ SWIFT_FLAGS := \
 C_SRCS := $(wildcard Sources/Support/*.c)
 C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
 
+SWIFT_SRCS := \
+  Sources/Application/Application.swift \
+  Sources/Support/ApplicationBridge.swift
+
 SWIFT_OBJ := $(BUILD_DIR)/Sources/Application/Application.o
 
 ALL_OBJS := $(C_OBJS) $(SWIFT_OBJ)
@@ -57,9 +61,9 @@ $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-$(SWIFT_OBJ): Sources/Application/Application.swift Sources/Support/BridgingHeader.h | $(BUILD_DIR)
+$(SWIFT_OBJ): $(SWIFT_SRCS) Sources/Support/BridgingHeader.h | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	$(SWIFTC) $(SWIFT_FLAGS) -c $< -o $@
+	$(SWIFTC) $(SWIFT_FLAGS) -c $(SWIFT_SRCS) -o $@
 
 # Link with arm-none-eabi-gcc so the bundled nano/nosys specs and linker script work
 $(BUILD_DIR)/$(PROJECT).elf: $(ALL_OBJS)

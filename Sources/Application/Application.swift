@@ -7,13 +7,11 @@
 //
 // PA02 is bit 2, so the mask is (1 << 2) = 0x00000004.
 
-@_cdecl("app_init")
 func appInit() {
     UnsafeMutablePointer<UInt32>(bitPattern: 0x41004408 as UInt)!.pointee = 1 << 2  // DIRSET: PA02 output
     UnsafeMutablePointer<UInt32>(bitPattern: 0x41004414 as UInt)!.pointee = 1 << 2  // OUTCLR: start low
 }
 
-@_cdecl("app_main")
 func appMain() {
     UnsafeMutablePointer<UInt32>(bitPattern: 0x41004418 as UInt)!.pointee = 1 << 2  // OUTSET: PA02 high
     delay(1000)
