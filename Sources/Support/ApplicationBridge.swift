@@ -1,5 +1,9 @@
-// C-callable entry points that forward to the Swift functions in Application.swift.
-// Keeping @_cdecl here means Application.swift stays free of compiler annotations.
+//
+//  ApplicationBridge.swift
+//  SAMD21E
+//
+//  Created by Paul Shelley on 4/17/26.
+//
 
 @_cdecl("app_init")
 func _bridgeAppInit() { appInit() }

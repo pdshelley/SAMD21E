@@ -1,3 +1,10 @@
+//
+//  Application.swift
+//  SAMD21E
+//
+//  Created by Paul Shelley on 4/17/26.
+//
+
 // Blink PA02 at 1-second intervals using direct memory-mapped I/O.
 //
 // PORT Group A base address: 0x41004400  (SAMD21 datasheet §23.8)
