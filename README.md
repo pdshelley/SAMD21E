@@ -1,6 +1,6 @@
-# SAMD21E - Self-contained Makefile Build (No Arduino IDE/CLI)
+# Embedded Swift example for the SAMD21E
 
-Current stage: Builds cleanly and uploads via bossac (NeoPixel-only, USB disabled).
+Current stage: Simple blink, requires LED added to A0. Builds and uploads via USB with bossac. Built and tested with the Adafruit QT Py SAMD21.
 
 ## Build
 
