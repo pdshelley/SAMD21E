@@ -1,98 +1,86 @@
-# Self-contained Makefile for Adafruit QT Py M0
-# Top level: SAMD21E/
+# Self-contained Makefile for Adafruit QT Py SAMD21 (M0) — Embedded Swift build.
 
 PROJECT   := SAMD21E
-BUILD_DIR := build
-CORE_DIR  := hardware/adafruit/samd/1.7.17
+BUILD_DIR := .build
 TOOLCHAIN := tools/arm-none-eabi-gcc/9-2019q4/bin
-VARIANT   := qtpy_m0
-NEO_DIR   := libraries/Adafruit_NeoPixel
 
-CC      := $(TOOLCHAIN)/arm-none-eabi-gcc
-CXX     := $(TOOLCHAIN)/arm-none-eabi-g++
+# C/C++ uses clang targeting ARM so the object format matches swiftc output
+CC      := clang
 OBJCOPY := $(TOOLCHAIN)/arm-none-eabi-objcopy
 SIZE    := $(TOOLCHAIN)/arm-none-eabi-size
+SWIFTC  := swiftc
 
-COMMON_FLAGS := -mcpu=cortex-m0plus -mthumb \
-                -g -Os -Werror=return-type \
-                -ffunction-sections -fdata-sections \
-                -nostdlib --param max-inline-insns-single=500 \
-                -DF_CPU=48000000L -DARDUINO=10607 \
-                -DARDUINO_QTPY_M0 -DARDUINO_ARCH_SAMD -DARDUINO_SAMD_ADAFRUIT \
-                -D__SAMD21E18A__ -DCRYSTALLESS -DADAFRUIT_QTPY_M0 \
-                -DARM_MATH_CM0PLUS
+TARGET_TRIPLE := armv6m-none-none-eabi
 
-CFLAGS   := $(COMMON_FLAGS) -std=gnu11
-CXXFLAGS := $(COMMON_FLAGS) -std=gnu++11 -fno-threadsafe-statics -fno-rtti -fno-exceptions
+CFLAGS := \
+  --target=$(TARGET_TRIPLE) \
+  -mcpu=cortex-m0plus -mthumb \
+  -mfloat-abi=soft \
+  -fshort-enums \
+  -g -Os \
+  -ffunction-sections -fdata-sections \
+  -nostdlib \
+  -std=gnu11 \
+  -DF_CPU=48000000L \
+  -D__SAMD21E18A__ -DCRYSTALLESS \
+  -DARM_MATH_CM0PLUS
 
-INCLUDES := -I$(CORE_DIR)/cores/arduino \
-            -I$(CORE_DIR)/variants/$(VARIANT) \
-            -I$(CORE_DIR)/libraries/SPI \
-            -I$(CORE_DIR)/libraries/Adafruit_ZeroDMA \
-            -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
-            -Itools/CMSIS/5.4.0/CMSIS/DSP/Include \
-            -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL \
-            -I$(NEO_DIR)
+INCLUDES := \
+  -ISources/Support \
+  -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
+  -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL
 
-# All core sources - exclude USB to prevent USBDevice references
-CORE_CPPS := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.cpp,$(wildcard $(CORE_DIR)/cores/arduino/*.cpp))
-CORE_CS   := $(filter-out $(CORE_DIR)/cores/arduino/USB/%.c,$(wildcard $(CORE_DIR)/cores/arduino/*.c))
-VARIANT_CPP := $(CORE_DIR)/variants/$(VARIANT)/variant.cpp
+SWIFT_FLAGS := \
+  -target $(TARGET_TRIPLE) \
+  -enable-experimental-feature Embedded \
+  -wmo \
+  -parse-as-library \
+  -Osize \
+  -import-bridging-header Sources/Support/BridgingHeader.h \
+  $(foreach f,$(CFLAGS),-Xcc $(f)) \
+  $(foreach f,$(INCLUDES),-Xcc $(f))
 
-LIB_CPPS  := $(wildcard $(NEO_DIR)/*.cpp)
-LIB_CS    := $(wildcard $(NEO_DIR)/*.c)
+# C support files only (Application.swift replaces Application.c)
+C_SRCS := $(wildcard Sources/Support/*.c)
+C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
 
-# Objects
-CORE_OBJS := $(patsubst $(CORE_DIR)/cores/arduino/%.cpp,$(BUILD_DIR)/core_%.o,$(CORE_CPPS)) \
-             $(patsubst $(CORE_DIR)/cores/arduino/%.c,$(BUILD_DIR)/core_%.o,$(CORE_CS)) \
-             $(BUILD_DIR)/variant.o
+SWIFT_SRCS := \
+  Sources/Application/Application.swift \
+  Sources/Support/ApplicationBridge.swift
 
-LIB_OBJS  := $(patsubst $(NEO_DIR)/%.cpp,$(BUILD_DIR)/neo_%.o,$(LIB_CPPS)) \
-             $(patsubst $(NEO_DIR)/%.c,$(BUILD_DIR)/neo_%.o,$(LIB_CS)) \
+SWIFT_OBJ := $(BUILD_DIR)/Sources/Application/Application.o
 
-SKETCH_CPP := Application/Application.cpp
-SKETCH_OBJ := $(BUILD_DIR)/$(PROJECT).o
+ALL_OBJS := $(C_OBJS) $(SWIFT_OBJ)
 
 .PHONY: all clean
 
 all: $(BUILD_DIR)/$(PROJECT).bin
 	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).elf
 
-$(BUILD_DIR):
-	mkdir -p $@
-	
-$(BUILD_DIR)/tiny_arduino:
-	mkdir -p $@
-
-$(SKETCH_OBJ): $(SKETCH_CPP) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-$(BUILD_DIR)/core_%.o: $(CORE_DIR)/cores/arduino/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-$(BUILD_DIR)/core_%.o: $(CORE_DIR)/cores/arduino/%.c | $(BUILD_DIR)
+$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/variant.o: $(VARIANT_CPP) | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+$(SWIFT_OBJ): $(SWIFT_SRCS) Sources/Support/BridgingHeader.h | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(SWIFTC) $(SWIFT_FLAGS) -c $(SWIFT_SRCS) -o $@
 
-$(BUILD_DIR)/neo_%.o: $(NEO_DIR)/%.cpp | $(BUILD_DIR)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-$(BUILD_DIR)/neo_%.o: $(NEO_DIR)/%.c | $(BUILD_DIR)
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
-
-$(BUILD_DIR)/$(PROJECT).elf: $(SKETCH_OBJ) $(CORE_OBJS) $(LIB_OBJS) | $(BUILD_DIR)
-	$(CXX) -Os -Wl,--gc-sections \
-		-T$(CORE_DIR)/variants/$(VARIANT)/linker_scripts/gcc/flash_with_bootloader.ld \
+# Link with arm-none-eabi-gcc so the bundled nano/nosys specs and linker script work
+$(BUILD_DIR)/$(PROJECT).elf: $(ALL_OBJS)
+	$(TOOLCHAIN)/arm-none-eabi-gcc -Os -Wl,--gc-sections \
+		-Ttools/linker_scripts/gcc/flash_with_bootloader.ld \
 		-Wl,--section-start=.text=0x2000 \
-		-mcpu=cortex-m0plus -mthumb --specs=nano.specs --specs=nosys.specs \
+		-mcpu=cortex-m0plus -mthumb \
+		--specs=nano.specs --specs=nosys.specs \
 		-Wl,--cref -Wl,--check-sections -Wl,--gc-sections \
 		-o $@ $^ \
 		-Ltools/CMSIS/5.4.0/CMSIS/Lib/GCC/ -larm_cortexM0l_math -lm
 
 $(BUILD_DIR)/$(PROJECT).bin: $(BUILD_DIR)/$(PROJECT).elf
 	$(OBJCOPY) -O binary $< $@
+
+$(BUILD_DIR):
+	mkdir -p $@
 
 clean:
 	rm -rf $(BUILD_DIR)
