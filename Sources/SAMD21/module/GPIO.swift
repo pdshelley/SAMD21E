@@ -8,9 +8,9 @@
 
 @usableFromInline let PORTA_BASE: UInt = 0x41004400   // SAMD21 datasheet §23.8
 
-public struct GPIO {
+struct GPIO {
     
-    public enum PORTA: AtomicPort {
+    enum PORTA: AtomicPort {
         
         /// Data Direction - DIR
         /// See Section 23.8.1.
@@ -30,9 +30,8 @@ public struct GPIO {
         /// | 1     | The corresponding I/O pin in the PORT group is configured as an output. |
         /// -----------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataDirection: UInt32 {
+        static var dataDirection: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE)
             }
@@ -60,9 +59,8 @@ public struct GPIO {
         /// | 1     | The corresponding I/O pin in the PORT group is configured as input.      |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataDirectionClear: UInt32 {
+        static var dataDirectionClear: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x04)
             }
@@ -90,9 +88,8 @@ public struct GPIO {
         /// | 1     | The corresponding I/O pin in the PORT group is configured as an output.  |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataDirectionSet: UInt32 {
+        static var dataDirectionSet: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x08)
             }
@@ -120,9 +117,8 @@ public struct GPIO {
         /// | 1     | The direction of the corresponding I/O pin is toggled.                   |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataDirectionToggle: UInt32 {
+        static var dataDirectionToggle: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x0C)
             }
@@ -153,9 +149,8 @@ public struct GPIO {
         /// | 1     | The I/O pin output is driven high, or the input is connected to an internal pull-up.  |
         /// -------------------------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataRegister: UInt32 {
+        static var dataRegister: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x10)
             }
@@ -187,9 +182,8 @@ public struct GPIO {
         /// | 1     | The corresponding I/O pin output is driven low, or the input is connected to an internal pull-down. |
         /// ---------------------------------------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataRegisterClear: UInt32 {
+        static var dataRegisterClear: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x14)
             }
@@ -221,9 +215,8 @@ public struct GPIO {
         /// | 1     | The corresponding I/O pin output is driven high, or the input is connected to an internal pull-up. |
         /// --------------------------------------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataRegisterSet: UInt32 {
+        static var dataRegisterSet: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x18)
             }
@@ -254,9 +247,8 @@ public struct GPIO {
         /// | 1     | The corresponding OUT bit value is toggled.                              |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var dataOutputValueToggle: UInt32 {
+        static var dataOutputValueToggle: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x1C)
             }
@@ -274,9 +266,8 @@ public struct GPIO {
         /// the input pin.
         /// These bits are set when the corresponding I/O pin input sampler detects a logical high level on the
         /// input pin.
-        @inlinable
         @inline(__always)
-        public static var inputAddress: UInt32 {
+        static var inputAddress: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x20)
             }
@@ -299,9 +290,8 @@ public struct GPIO {
         /// | 1     | Continuous sampling of I/O pin is enabled. |
         /// ------------------------------------------------------
         /// ```
-        @inlinable
         @inline(__always)
-        public static var inputSamplingMode: UInt32 {
+        static var inputSamplingMode: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x24)
             }
@@ -319,36 +309,36 @@ public struct GPIO {
     }
     
     /// PORTA
-    public typealias PA00 = DigitalPin<PORTA, Bit0>
-    public typealias PA01 = DigitalPin<PORTA, Bit1>
-    public typealias PA02 = DigitalPin<PORTA, Bit2>
-    public typealias PA03 = DigitalPin<PORTA, Bit3>
-    public typealias PA04 = DigitalPin<PORTA, Bit4>
-    public typealias PA05 = DigitalPin<PORTA, Bit5>
-    public typealias PA06 = DigitalPin<PORTA, Bit6>
-    public typealias PA07 = DigitalPin<PORTA, Bit7>
-    public typealias PA08 = DigitalPin<PORTA, Bit8>
-    public typealias PA09 = DigitalPin<PORTA, Bit9>
-    public typealias PA10 = DigitalPin<PORTA, Bit10>
-    public typealias PA11 = DigitalPin<PORTA, Bit11>
-    public typealias PA12 = DigitalPin<PORTA, Bit12>
-    public typealias PA13 = DigitalPin<PORTA, Bit13>
-    public typealias PA14 = DigitalPin<PORTA, Bit14>
-    public typealias PA15 = DigitalPin<PORTA, Bit15>
-    public typealias PA16 = DigitalPin<PORTA, Bit16>
-    public typealias PA17 = DigitalPin<PORTA, Bit17>
-    public typealias PA18 = DigitalPin<PORTA, Bit18>
-    public typealias PA19 = DigitalPin<PORTA, Bit19>
-    public typealias PA20 = DigitalPin<PORTA, Bit20>
-    public typealias PA21 = DigitalPin<PORTA, Bit21>
-    public typealias PA22 = DigitalPin<PORTA, Bit22>
-    public typealias PA23 = DigitalPin<PORTA, Bit23>
-    public typealias PA24 = DigitalPin<PORTA, Bit24>
-    public typealias PA25 = DigitalPin<PORTA, Bit25>
-    public typealias PA26 = DigitalPin<PORTA, Bit26>
-    public typealias PA27 = DigitalPin<PORTA, Bit27>
-    public typealias PA28 = DigitalPin<PORTA, Bit28>
-    public typealias PA29 = DigitalPin<PORTA, Bit29>
-    public typealias PA30 = DigitalPin<PORTA, Bit30>
-    public typealias PA31 = DigitalPin<PORTA, Bit31>
+    typealias PA00 = DigitalPin<PORTA, Bit0>
+    typealias PA01 = DigitalPin<PORTA, Bit1>
+    typealias PA02 = DigitalPin<PORTA, Bit2>
+    typealias PA03 = DigitalPin<PORTA, Bit3>
+    typealias PA04 = DigitalPin<PORTA, Bit4>
+    typealias PA05 = DigitalPin<PORTA, Bit5>
+    typealias PA06 = DigitalPin<PORTA, Bit6>
+    typealias PA07 = DigitalPin<PORTA, Bit7>
+    typealias PA08 = DigitalPin<PORTA, Bit8>
+    typealias PA09 = DigitalPin<PORTA, Bit9>
+    typealias PA10 = DigitalPin<PORTA, Bit10>
+    typealias PA11 = DigitalPin<PORTA, Bit11>
+    typealias PA12 = DigitalPin<PORTA, Bit12>
+    typealias PA13 = DigitalPin<PORTA, Bit13>
+    typealias PA14 = DigitalPin<PORTA, Bit14>
+    typealias PA15 = DigitalPin<PORTA, Bit15>
+    typealias PA16 = DigitalPin<PORTA, Bit16>
+    typealias PA17 = DigitalPin<PORTA, Bit17>
+    typealias PA18 = DigitalPin<PORTA, Bit18>
+    typealias PA19 = DigitalPin<PORTA, Bit19>
+    typealias PA20 = DigitalPin<PORTA, Bit20>
+    typealias PA21 = DigitalPin<PORTA, Bit21>
+    typealias PA22 = DigitalPin<PORTA, Bit22>
+    typealias PA23 = DigitalPin<PORTA, Bit23>
+    typealias PA24 = DigitalPin<PORTA, Bit24>
+    typealias PA25 = DigitalPin<PORTA, Bit25>
+    typealias PA26 = DigitalPin<PORTA, Bit26>
+    typealias PA27 = DigitalPin<PORTA, Bit27>
+    typealias PA28 = DigitalPin<PORTA, Bit28>
+    typealias PA29 = DigitalPin<PORTA, Bit29>
+    typealias PA30 = DigitalPin<PORTA, Bit30>
+    typealias PA31 = DigitalPin<PORTA, Bit31>
 }

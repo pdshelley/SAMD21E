@@ -13,37 +13,33 @@
 
 
 // TODO: When changing from INPUT without pull-ups to OUPUT HIGH, there must be an intermediate state: Either pull-ups enabled or OUTPUT LOW. See Datasheet 14.2.3.
-@frozen
-public struct DigitalValue {
-    public var _value: Bool
+struct DigitalValue {
+    var _value: Bool
 
     @_transparent
-    public init(_ _value: Bool) {
+    init(_ _value: Bool) {
         self._value = _value
     }
 
-    @inlinable
     @inline(__always)
-    public static var high: DigitalValue { DigitalValue(true) }
+    static var high: DigitalValue { DigitalValue(true) }
 
-    @inlinable
     @inline(__always)
-    public static var low: DigitalValue { DigitalValue(false) }
+    static var low: DigitalValue { DigitalValue(false) }
 }
 
 // TODO: Do This
 //extension DigitalValue: CustomStringConvertible {
 //  /// A textual representation of the DigitalValue.
 //  @inlinable
-//  public var description: String {
+//  var description: String {
 //    return self ? "high" : "low"
 //  }
 //}
 
 extension DigitalValue: Equatable {
-    @inlinable
     @inline(__always)
-    public static func == (lhs: DigitalValue, rhs: DigitalValue) -> Bool {
+    static func == (lhs: DigitalValue, rhs: DigitalValue) -> Bool {
         return lhs._value == rhs._value
     }
 }
@@ -54,9 +50,8 @@ extension DigitalValue: Hashable {
     ///
     /// - Parameter hasher: The hasher to use when combining the components
     ///   of this instance.
-    @inlinable
     @inline(__always)
-    public func hash(into hasher: inout Hasher) {
+    func hash(into hasher: inout Hasher) {
         hasher.combine((self._value ? 1 : 0) as UInt)
     }
 }
@@ -72,9 +67,8 @@ extension DigitalValue {
   /// the result is `high`.
   ///
   /// - Parameter a: The DigitalValue to negate.
-  @inlinable
   @inline(__always)
-  public static prefix func ! (lhs: DigitalValue) -> DigitalValue { DigitalValue(!lhs._value) }
+  static prefix func ! (lhs: DigitalValue) -> DigitalValue { DigitalValue(!lhs._value) }
 }
 
 extension DigitalValue {
@@ -87,9 +81,8 @@ extension DigitalValue {
   /// - Parameters:
   ///   - lhs: The left-hand side of the operation.
   ///   - rhs: The right-hand side of the operation.
-  @inlinable
   @inline(__always)
-  public static func && (lhs: DigitalValue, rhs: DigitalValue) -> DigitalValue {
+  static func && (lhs: DigitalValue, rhs: DigitalValue) -> DigitalValue {
         return DigitalValue(lhs._value && rhs._value)
   }
 
@@ -102,9 +95,8 @@ extension DigitalValue {
   /// - Parameters:
   ///   - lhs: The left-hand side of the operation.
   ///   - rhs: The right-hand side of the operation.
-  @inlinable
   @inline(__always)
-  public static func || (lhs: DigitalValue, rhs: DigitalValue) -> DigitalValue {
+  static func || (lhs: DigitalValue, rhs: DigitalValue) -> DigitalValue {
       return DigitalValue(lhs._value || rhs._value)
   }
 }
@@ -114,8 +106,7 @@ extension DigitalValue {
   ///
   /// Use this method to toggle a DigitalValue from `high` to `low` or from
   /// `low` to `high`.
-  @inlinable
   @inline(__always)
-  public mutating func toggle() { self._value = !self._value }
+  mutating func toggle() { self._value = !self._value }
 }
 

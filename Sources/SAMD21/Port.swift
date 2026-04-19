@@ -11,7 +11,7 @@
 
 // NOTE: This Port abstraction could also have the same issue. I think it's very safe to assume that all of the AVR chips will work this way but I am unfamiliar with how strong this convention is. I'll try to research this.
 // See ATmega48A/PA/88A/PA/168A/PA/328/P Datasheet section 14
-public protocol PartialPort {
+protocol PartialPort {
     associatedtype PortType: BinaryInteger
     static var dataRegister: PortType { get set }
     static var inputAddress: PortType { get } // TODO: Can you write to this? See 14.4.4
@@ -19,49 +19,44 @@ public protocol PartialPort {
 
 // we separate out the PartialPort protocol because some AVR chips (the HVA series) have
 // a port that only contains read/write registers and no data direction register
-public protocol Port: PartialPort {
+protocol Port: PartialPort {
     static var dataDirection: PortType { get set }
 }
 
-public protocol Bit {
+protocol Bit {
     associatedtype BitType: BinaryInteger
     associatedtype PinMaskType: BinaryInteger
     static var bit: BitType { get }
 }
 
-public extension Bit {
-    @inlinable
+extension Bit {
     @inline(__always)
     static var pinSetMask: PinMaskType {
         1 << bit
     }
 
-    @inlinable
     @inline(__always)
     static var pinClearMask: PinMaskType {
         ~(1 << bit)
     }
 
-    @inlinable
     @inline(__always)
     static var pinDirectionSetMask: PinMaskType {
         1 << bit
     }
 
-    @inlinable
     @inline(__always)
     static var pinDirectionClearMask: PinMaskType {
         ~(1 << bit)
     }
 
-    @inlinable
     @inline(__always)
     static var pinGetMask: PinMaskType {
         1 << bit
     }
 }
 
-public protocol PartialPortPin {
+protocol PartialPortPin {
     associatedtype PinPartialPort: PartialPort
     associatedtype PinBit: Bit
 
@@ -69,12 +64,11 @@ public protocol PartialPortPin {
     static func value() -> DigitalValue
 }
 
-@frozen
-public enum DataDirectionFlag: UInt32 {
+enum DataDirectionFlag: UInt32 {
     case input, output
 }
 
-public protocol PortPin: PartialPortPin where PinPartialPort == PinPort {
+protocol PortPin: PartialPortPin where PinPartialPort == PinPort {
     associatedtype PinPort: Port
     static func setDataDirection(_ direction: DataDirectionFlag)
 }
@@ -94,8 +88,7 @@ public protocol PortPin: PartialPortPin where PinPartialPort == PinPort {
 //
 //}
 
-public extension PartialPortPin where PinPartialPort.PortType == PinBit.PinMaskType {
-    @inlinable
+extension PartialPortPin where PinPartialPort.PortType == PinBit.PinMaskType {
     @inline(__always)
     static func setValue(_ value: DigitalValue) {
     if value == .high {
@@ -105,15 +98,13 @@ public extension PartialPortPin where PinPartialPort.PortType == PinBit.PinMaskT
     }
   }
 
-    @inlinable
     @inline(__always)
     static func value() -> DigitalValue {
       return DigitalValue(PinPartialPort.inputAddress & PinBit.pinGetMask != 0)
   }
 }
 
-public extension PortPin where PinPort.PortType == PinBit.PinMaskType {
-    @inlinable
+extension PortPin where PinPort.PortType == PinBit.PinMaskType {
     @inline(__always)
     static func setDataDirection(_ direction: DataDirectionFlag) {
         switch direction {
@@ -127,15 +118,14 @@ public extension PortPin where PinPort.PortType == PinBit.PinMaskType {
 
 // Ports that expose dedicated set/clear registers (e.g. SAMD21 DIRSET/DIRCLR, OUTSET/OUTCLR).
 // Conforming types get overriding implementations that avoid read-modify-write.
-public protocol AtomicPort: Port {
+protocol AtomicPort: Port {
     static var dataDirectionSet: PortType { get set }
     static var dataDirectionClear: PortType { get set }
     static var dataRegisterSet: PortType { get set }
     static var dataRegisterClear: PortType { get set }
 }
 
-public extension PortPin where PinPort: AtomicPort, PinPort.PortType == PinBit.PinMaskType {
-    @inlinable
+extension PortPin where PinPort: AtomicPort, PinPort.PortType == PinBit.PinMaskType {
     @inline(__always)
     static func setValue(_ value: DigitalValue) {
         if value == .high {
@@ -145,7 +135,6 @@ public extension PortPin where PinPort: AtomicPort, PinPort.PortType == PinBit.P
         }
     }
 
-    @inlinable
     @inline(__always)
     static func setDataDirection(_ direction: DataDirectionFlag) {
         switch direction {
@@ -155,272 +144,240 @@ public extension PortPin where PinPort: AtomicPort, PinPort.PortType == PinBit.P
     }
 }
 
-public enum DigitalPin<_Port: Port, _Bit: Bit>: PortPin where _Port.PortType == _Bit.PinMaskType {
-    public typealias PinPort = _Port
-    public typealias PinPartialPort = _Port
-    public typealias PinBit = _Bit
+enum DigitalPin<_Port: Port, _Bit: Bit>: PortPin where _Port.PortType == _Bit.PinMaskType {
+    typealias PinPort = _Port
+    typealias PinPartialPort = _Port
+    typealias PinBit = _Bit
 }
 
-public enum InputOnlyDigitalPin<_Port: PartialPort, _Bit: Bit>: PartialPortPin where _Port.PortType == _Bit.PinMaskType {
-    public typealias PinPartialPort = _Port
-    public typealias PinBit = _Bit
+enum InputOnlyDigitalPin<_Port: PartialPort, _Bit: Bit>: PartialPortPin where _Port.PortType == _Bit.PinMaskType {
+    typealias PinPartialPort = _Port
+    typealias PinBit = _Bit
 }
 
 // bit definitions for AVR
-public enum Bit0: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit0: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 0 }
+    static var bit: UInt32 { 0 }
 }
 
-public enum Bit1: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit1: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 1 }
+    static var bit: UInt32 { 1 }
 }
 
-public enum Bit2: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit2: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 2 }
+    static var bit: UInt32 { 2 }
 }
 
-public enum Bit3: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit3: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 3 }
+    static var bit: UInt32 { 3 }
 }
 
-public enum Bit4: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit4: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 4 }
+    static var bit: UInt32 { 4 }
 }
 
-public enum Bit5: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit5: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 5 }
+    static var bit: UInt32 { 5 }
 }
 
-public enum Bit6: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit6: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 6 }
+    static var bit: UInt32 { 6 }
 }
 
-public enum Bit7: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit7: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 7 }
+    static var bit: UInt32 { 7 }
 }
 
-public enum Bit8: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit8: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 8 }
+    static var bit: UInt32 { 8 }
 }
 
-public enum Bit9: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit9: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 9 }
+    static var bit: UInt32 { 9 }
 }
 
-public enum Bit10: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit10: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 10 }
+    static var bit: UInt32 { 10 }
 }
 
-public enum Bit11: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit11: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 11 }
+    static var bit: UInt32 { 11 }
 }
 
-public enum Bit12: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit12: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 12 }
+    static var bit: UInt32 { 12 }
 }
 
-public enum Bit13: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit13: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 13 }
+    static var bit: UInt32 { 13 }
 }
 
-public enum Bit14: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit14: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 14 }
+    static var bit: UInt32 { 14 }
 }
 
-public enum Bit15: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit15: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 15 }
+    static var bit: UInt32 { 15 }
 }
 
-public enum Bit16: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit16: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 16 }
+    static var bit: UInt32 { 16 }
 }
 
-public enum Bit17: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit17: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 17 }
+    static var bit: UInt32 { 17 }
 }
 
-public enum Bit18: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit18: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 18 }
+    static var bit: UInt32 { 18 }
 }
 
-public enum Bit19: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit19: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 19 }
+    static var bit: UInt32 { 19 }
 }
 
-public enum Bit20: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit20: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 20 }
+    static var bit: UInt32 { 20 }
 }
 
-public enum Bit21: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit21: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 21 }
+    static var bit: UInt32 { 21 }
 }
 
-public enum Bit22: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit22: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 22 }
+    static var bit: UInt32 { 22 }
 }
 
-public enum Bit23: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit23: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 23 }
+    static var bit: UInt32 { 23 }
 }
 
-public enum Bit24: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit24: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 24 }
+    static var bit: UInt32 { 24 }
 }
 
-public enum Bit25: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit25: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 25 }
+    static var bit: UInt32 { 25 }
 }
 
-public enum Bit26: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit26: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 26 }
+    static var bit: UInt32 { 26 }
 }
 
-public enum Bit27: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit27: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 27 }
+    static var bit: UInt32 { 27 }
 }
 
-public enum Bit28: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit28: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 28 }
+    static var bit: UInt32 { 28 }
 }
 
-public enum Bit29: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit29: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 29 }
+    static var bit: UInt32 { 29 }
 }
 
-public enum Bit30: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit30: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 30 }
+    static var bit: UInt32 { 30 }
 }
 
-public enum Bit31: Bit {
-    public typealias PinMaskType = UInt32
+enum Bit31: Bit {
+    typealias PinMaskType = UInt32
 
-    @inlinable
     @inline(__always)
-    public static var bit: UInt32 { 31 }
+    static var bit: UInt32 { 31 }
 }
 
 
@@ -428,10 +385,9 @@ public enum Bit31: Bit {
 //------------------------------------------------------------------------------
 // Get a single bit from an 32 bit register (value)
 
-@inlinable
 @inline(__always)
 
-public func getRegisterBit(_ register: UInt32, bit: UInt32) -> Bool {
+func getRegisterBit(_ register: UInt32, bit: UInt32) -> Bool {
 
 //    let registerValue: UInt32 = _volatileRegisterReadUInt32(UInt16(register))
 //    let bitFilter = 1 << bit
@@ -443,10 +399,9 @@ public func getRegisterBit(_ register: UInt32, bit: UInt32) -> Bool {
 //------------------------------------------------------------------------------
 // Set a single bit in an 8 bit register, leaving all other bits intact
 
-@inlinable
 @inline(__always)
 
-public func setRegisterBit(_ register: UInt32, bit: UInt32, value: Bool) {
+func setRegisterBit(_ register: UInt32, bit: UInt32, value: Bool) {
 
 //    let bitFilter = 1 << bit
 
