@@ -9,6 +9,9 @@
 func appInit() {
     GPIO.PA02.setDataDirection(.output)
     GPIO.PA02.setValue(.low)
+
+    // Milestone 1: route GCLK0 (DFLL48M @ 48 MHz) to USB, enable USB APB + AHB clocks.
+    usbClockInit()
 }
 
 func appMain() {
