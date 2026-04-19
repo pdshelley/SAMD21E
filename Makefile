@@ -45,10 +45,11 @@ C_SRCS := $(wildcard Sources/Support/*.c)
 C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
 
 SWIFT_SRCS := \
-  Sources/Application/Application.swift \
-  Sources/Support/ApplicationBridge.swift
+  $(shell find Sources/Application -name "*.swift" 2>/dev/null) \
+  $(shell find Sources/Support -name "*.swift" 2>/dev/null) \
+  $(shell find Sources/SAMD21 -name "*.swift" 2>/dev/null)
 
-SWIFT_OBJ := $(BUILD_DIR)/Sources/Application/Application.o
+SWIFT_OBJ := $(BUILD_DIR)/swift.o
 
 ALL_OBJS := $(C_OBJS) $(SWIFT_OBJ)
 
