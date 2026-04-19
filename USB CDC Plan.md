@@ -74,29 +74,38 @@ SRAM — not on any function's stack. Declare it as a module-level stored variab
 
 ---
 
-### Milestone 1 — Clock & Power Initialization
+### Milestone 1 — Clock & Power Initialization ✓ COMPLETE
 
-**Goal:** DFLL48M running at 48 MHz, routed to the USB peripheral. Chip is alive, no hard fault.
+**Goal:** DFLL48M running at 48 MHz in open-loop mode, routed to the USB peripheral. LED blinking at 1 Hz.
 
-**Files:** `USBDevice.swift` (new static configure/init section)
+**Files:** `USBDevice.swift` — `usbClockInit()` function
 
-**Implementation steps:**
-1. Set `SystemController.osc8mPrescaler = .div1` → 8 MHz base clock.
-2. Configure GCLK0 to use OSC8M (needed as reference before DFLL48M is ready).
-3. Enable DFLL48M in open-loop mode: `SystemController.dfllEnable = true`,
-   `dfllUSBClockRecoveryMode = false`. Wait for DFLLRDY in PCLKSR.
-4. Switch GCLK0 source to DFLL48M (system clock is now ~48 MHz).
-5. Route a GCLK generator to the USB peripheral clock ID via `GenericClockController`.
-6. Enable USB APB clock (`PowerManager.usbClockEnable = true`) and
-   AHB clock (`PowerManager.usbAHBClockEnable = true`).
+**Verified:** LED blinks correctly at 1 Hz. No hard fault.
 
-**Critical detail:** Each GCLK GENCTRL/GENDIV write requires waiting for SYNCBUSY before
-the next write. Confirm the GenericClockController HAL handles this.
+**Key findings from implementation (update future session prompts with these):**
 
-**Verification:**
-- LED blinks at a known rate using `delay()`. If rate is visibly correct → clocks OK.
-- If chip hangs → a SYNCBUSY wait is missing.
-- Logic analyzer: measure GCLK output on PA14/PA15 if configured as GCLK_IO for sanity check.
+`startup.c` / `SystemInit()` runs before Swift and leaves the system in a specific state:
+- OSC8M prescaler already ÷1 (8 MHz)
+- GCLK0 already sourced from DFLL48M (CPU already at 48 MHz)
+- DFLL48M already enabled — but **in USBCRM closed-loop mode** (MODE=1, USBCRM=1, CCDIS=1, BPLCKC=1)
+
+The USBCRM state is the critical issue: enabling the USB AHB clock while DFLL is still in
+USBCRM causes the DFLL to respond to noise on D+/D− as false SOF events, destabilising the
+system clock and hanging the CPU.
+
+**Actual 6-step sequence implemented:**
+
+| Step | Action | Status |
+|------|--------|--------|
+| 1 | OSC8M ÷1 | Idempotent — startup.c already did this |
+| 2 | GCLK0 → OSC8M | **Required** — stable CPU clock while DFLL is reconfigured |
+| 3 | Disable DFLL → re-enable open-loop only | **Required** — clears USBCRM/MODE left by startup.c |
+| 4 | GCLK0 → DFLL48M | Idempotent — same as startup.c, but needed after step 2 |
+| 5 | CLKCTRL: USB peripheral → GEN0 | **Required** — startup.c never touched USB clock routing |
+| 6 | Enable USB APB + AHB clocks | **Required** — startup.c never touched USB PM clocks |
+
+**Correction to original plan:** SYNCBUSY **is** required after CLKCTRL writes.
+`startup.c` line 98 confirms this. The original plan summary was wrong on this point.
 
 ---
 
