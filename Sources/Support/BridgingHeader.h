@@ -26,3 +26,5 @@ extern uint32_t _volatileRegisterReadUInt32(uintptr_t address);
 /// At some point in the future this might be added to Swift, if so this should
 /// be removed in favor of a Swift only approach.
 extern void _volatileRegisterWriteUInt32(uintptr_t address, uint32_t value);
+
+#include "cdc_bridge.h"

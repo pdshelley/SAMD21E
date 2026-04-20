@@ -25,10 +25,18 @@ CFLAGS := \
   -D__SAMD21E18A__ -DCRYSTALLESS \
   -DARM_MATH_CM0PLUS
 
+TUSB_DIR := Sources/tinyusb/src
+
 INCLUDES := \
   -ISources/Support \
+  -ISources/Application/USB \
   -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
-  -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL
+  -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL \
+  -Itools/arm-none-eabi-gcc/9-2019q4/arm-none-eabi/include \
+  -I$(TUSB_DIR) \
+  -I$(TUSB_DIR)/common \
+  -I$(TUSB_DIR)/device \
+  -I$(TUSB_DIR)/class/cdc
 
 SWIFT_FLAGS := \
   -target $(TARGET_TRIPLE) \
@@ -41,8 +49,18 @@ SWIFT_FLAGS := \
   $(foreach f,$(INCLUDES),-Xcc $(f))
 
 # C support files only (Application.swift replaces Application.c)
-C_SRCS := $(wildcard Sources/Support/*.c)
+C_SRCS := $(wildcard Sources/Support/*.c) $(wildcard Sources/Application/USB/*.c)
 C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
+
+TUSB_SRCS := \
+  $(TUSB_DIR)/tusb.c \
+  $(TUSB_DIR)/common/tusb_fifo.c \
+  $(TUSB_DIR)/device/usbd.c \
+  $(TUSB_DIR)/device/usbd_control.c \
+  $(TUSB_DIR)/class/cdc/cdc_device.c \
+  $(TUSB_DIR)/portable/microchip/samd/dcd_samd.c
+
+TUSB_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(TUSB_SRCS))
 
 SWIFT_SRCS := \
   $(shell find Sources/Application -name "*.swift" 2>/dev/null) \
@@ -51,12 +69,17 @@ SWIFT_SRCS := \
 
 SWIFT_OBJ := $(BUILD_DIR)/swift.o
 
-ALL_OBJS := $(C_OBJS) $(SWIFT_OBJ)
+ALL_OBJS := $(C_OBJS) $(TUSB_OBJS) $(SWIFT_OBJ)
 
 .PHONY: all clean
 
 all: $(BUILD_DIR)/$(PROJECT).bin
 	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).elf
+
+# TinyUSB sources — suppress warnings from vendored library
+$(TUSB_OBJS): $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -w -c $< -o $@
 
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
