@@ -1,3 +1,11 @@
+//
+//  CDC.swift
+//  SAMD21E
+//
+//  Created by Paul Shelley on 4/20/26.
+//
+
+
 /// USB CDC ACM interface backed by TinyUSB.
 ///
 /// Typical usage:

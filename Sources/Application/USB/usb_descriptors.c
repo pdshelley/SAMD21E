@@ -1,6 +1,7 @@
 #include "tusb.h"
 
 // VID/PID — 0xCafe is TinyUSB's example vendor; PID bit 0 = CDC
+// Note: 0xCafe/0x4001 is fine for development, but if you change your descriptor layout later and macOS keeps loading the wrong driver, increment the PID by one to force a fresh driver binding.
 #define USB_VID   0xCafe
 #define USB_PID   0x4001
 #define USB_BCD   0x0200
@@ -80,11 +81,26 @@ static char const *string_desc_arr[] = {
     (const char[]){ 0x09, 0x04 },   // 0: Language — English (0x0409)
     "Embedded Swift",               // 1: Manufacturer
     "SAMD21E CDC",                  // 2: Product
-    "001",                          // 3: Serial number
+    NULL,                           // 3: Serial — filled from SAMD21 unique ID below
     "CDC Serial",                   // 4: CDC interface name
 };
 
+// SAMD21 unique serial: four 32-bit words spread across NVM (see datasheet §9.6)
+#define SERIAL_WORD0  (*((volatile uint32_t *)0x0080A00C))
+#define SERIAL_WORD1  (*((volatile uint32_t *)0x0080A040))
+#define SERIAL_WORD2  (*((volatile uint32_t *)0x0080A044))
+#define SERIAL_WORD3  (*((volatile uint32_t *)0x0080A048))
+
 static uint16_t _desc_str[32 + 1];
+
+// Append an 8-character hex representation of val into _desc_str starting at pos.
+static void append_hex32(uint32_t val, size_t pos) {
+    const char hex[] = "0123456789ABCDEF";
+    for (int i = 7; i >= 0; i--) {
+        _desc_str[pos + (size_t)i] = hex[val & 0xF];
+        val >>= 4;
+    }
+}
 
 uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     (void)langid;
@@ -94,6 +110,13 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     if (index == STRID_LANGID) {
         __builtin_memcpy(&_desc_str[1], string_desc_arr[0], 2);
         chr_count = 1;
+    } else if (index == STRID_SERIAL) {
+        // Build a 32-char serial from the 128-bit unique ID
+        append_hex32(SERIAL_WORD0, 1);
+        append_hex32(SERIAL_WORD1, 9);
+        append_hex32(SERIAL_WORD2, 17);
+        append_hex32(SERIAL_WORD3, 25);
+        chr_count = 32;
     } else {
         if (index >= sizeof(string_desc_arr) / sizeof(string_desc_arr[0])) return NULL;
 

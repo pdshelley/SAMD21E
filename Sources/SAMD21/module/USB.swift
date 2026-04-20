@@ -5,6 +5,10 @@
 //  Created by Paul Shelley on 4/19/26.
 //
 
+//  Low-level register map for the SAMD21 USB peripheral.
+//  TinyUSB owns this peripheral at runtime — do not call these directly
+//  while CDC is active. Use the CDC module in Sources/SAMD21/module/CDC.swift.
+
 @usableFromInline let USB_BASE: UInt    = 0x41005000   // SAMD21 datasheet §32.8
 @usableFromInline let USB_EP_BASE: UInt = 0x41005100   // §32.8 – endpoint/pipe register array
 
