@@ -6,17 +6,25 @@
 //
 
 
+// MARK: - State
+
+var blinkTimer = PeriodicTimer(interval: 1000)
+var ledState: DigitalValue = .low
+
+// MARK: - Entry Points
+
 func appInit() {
     GPIO.PA02.setDataDirection(.output)
     GPIO.PA02.setValue(.low)
-
+    blinkTimer.reset()
+    
     // Milestone 1: route GCLK0 (DFLL48M @ 48 MHz) to USB, enable USB APB + AHB clocks.
     usbClockInit()
 }
 
 func appMain() {
-    GPIO.PA02.setValue(.high)
-    delay(1000)
-    GPIO.PA02.setValue(.low)
-    delay(1000)
+    if blinkTimer.hasElapsed() {
+        ledState.toggle()
+        GPIO.PA02.setValue(ledState)
+    }
 }
