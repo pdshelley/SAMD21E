@@ -36,6 +36,14 @@ uint32_t cdc_write(const uint8_t *buf, uint32_t len) {
     return (uint32_t)tud_cdc_write(buf, len);
 }
 
+uint32_t cdc_write_byte(uint8_t b) {
+    return (uint32_t)tud_cdc_write(&b, 1);
+}
+
+uint32_t cdc_write_available(void) {
+    return tud_cdc_write_available();
+}
+
 void cdc_flush(void) {
     tud_cdc_write_flush();
 }

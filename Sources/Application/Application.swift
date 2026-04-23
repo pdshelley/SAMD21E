@@ -10,6 +10,7 @@
 var blinkTimer = PeriodicTimer(interval: 1000)
 var ledState: DigitalValue = .low
 var wasConnected: Bool = false
+var userRowData: UInt32 = 42
 
 // MARK: - Entry Points
 
@@ -17,6 +18,7 @@ func appInit() {
     GPIO.PA02.setDataDirection(.output)
     GPIO.PA02.setValue(.low)
     blinkTimer.reset()
+    userRowData = UserRowReader.loadWord()
     CDC.initialize()
 }
 
@@ -27,6 +29,9 @@ func appMain() {
     let connected = CDC.isConnected
     if connected && !wasConnected {
         CDC.print("Hello from SAMD21E!\r\n")
+        CDC.print("User Row: ")
+        CDC.print(userRowData)
+        CDC.print("\r\n")
     }
     wasConnected = connected
 

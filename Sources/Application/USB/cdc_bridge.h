@@ -18,5 +18,11 @@ bool cdc_is_connected(void);
 /// Returns the number of bytes actually queued. Does not flush.
 uint32_t cdc_write(const uint8_t *buf, uint32_t len);
 
+/// Write one byte (safe from Swift: avoids passing a transient stack pointer into `cdc_write`).
+uint32_t cdc_write_byte(uint8_t b);
+
+/// Free space remaining in the CDC TX FIFO (TinyUSB `tud_cdc_write_available`).
+uint32_t cdc_write_available(void);
+
 /// Flush the CDC TX FIFO, sending any buffered bytes to the host.
 void cdc_flush(void);
