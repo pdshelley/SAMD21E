@@ -11,8 +11,8 @@ var blinkTimer = PeriodicTimer(interval: 1000)
 var ledState: DigitalValue = .low
 var wasConnected: Bool = false
 var userRowMAC: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0, 0, 0)
-let shouldWriteMACAfterCDCConnect: Bool = true
-let useCUserRowWriter: Bool = true
+let shouldWriteMACAfterCDCConnect: Bool = false
+let useCUserRowWriter: Bool = false
 var didAttemptUserRowWrite: Bool = false
 var userRowWriteSucceeded: Bool = false
 
