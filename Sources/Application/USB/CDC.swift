@@ -20,7 +20,7 @@ enum CDC {
         cdc_is_connected()
     }
 
-    static var writeAvailable: UInt32 {
+    private static var writeAvailable: UInt32 {
         cdc_write_available()
     }
 
