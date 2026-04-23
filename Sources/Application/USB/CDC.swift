@@ -20,7 +20,7 @@ enum CDC {
         cdc_is_connected()
     }
 
-    private static var writeAvailable: UInt32 {
+    static var writeAvailable: UInt32 {
         cdc_write_available()
     }
 
@@ -34,76 +34,58 @@ enum CDC {
     }
 
     static func print(_ value: UInt8) {
-        var buf: (UInt8, UInt8, UInt8) = (0, 0, 0)
-        var count = 0
-        value.asciiDigits(into: &buf, count: &count)
-        if count >= 1 { _ = cdc_write_byte(buf.0) }
-        if count >= 2 { _ = cdc_write_byte(buf.1) }
-        if count >= 3 { _ = cdc_write_byte(buf.2) }
+        let ascii = value.asciiDigits()
+        if ascii.count >= 1 { _ = cdc_write_byte(ascii.digits.0) }
+        if ascii.count >= 2 { _ = cdc_write_byte(ascii.digits.1) }
+        if ascii.count >= 3 { _ = cdc_write_byte(ascii.digits.2) }
         flush()
     }
 
     static func print(_ value: UInt16) {
-        var buf: (UInt8, UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0, 0)
-        var count = 0
-        value.asciiDigits(into: &buf, count: &count)
-        if count >= 1 { _ = cdc_write_byte(buf.0) }
-        if count >= 2 { _ = cdc_write_byte(buf.1) }
-        if count >= 3 { _ = cdc_write_byte(buf.2) }
-        if count >= 4 { _ = cdc_write_byte(buf.3) }
-        if count >= 5 { _ = cdc_write_byte(buf.4) }
+        let ascii = value.asciiDigits()
+        if ascii.count >= 1 { _ = cdc_write_byte(ascii.digits.0) }
+        if ascii.count >= 2 { _ = cdc_write_byte(ascii.digits.1) }
+        if ascii.count >= 3 { _ = cdc_write_byte(ascii.digits.2) }
+        if ascii.count >= 4 { _ = cdc_write_byte(ascii.digits.3) }
+        if ascii.count >= 5 { _ = cdc_write_byte(ascii.digits.4) }
         flush()
     }
 
     static func print(_ value: UInt32) {
-        var buf: (
-            UInt8, UInt8, UInt8, UInt8, UInt8,
-            UInt8, UInt8, UInt8, UInt8, UInt8
-        ) = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-        var count = 0
-        value.asciiDigits(into: &buf, count: &count)
-        if count >= 1 { _ = cdc_write_byte(buf.0) }
-        if count >= 2 { _ = cdc_write_byte(buf.1) }
-        if count >= 3 { _ = cdc_write_byte(buf.2) }
-        if count >= 4 { _ = cdc_write_byte(buf.3) }
-        if count >= 5 { _ = cdc_write_byte(buf.4) }
-        if count >= 6 { _ = cdc_write_byte(buf.5) }
-        if count >= 7 { _ = cdc_write_byte(buf.6) }
-        if count >= 8 { _ = cdc_write_byte(buf.7) }
-        if count >= 9 { _ = cdc_write_byte(buf.8) }
-        if count >= 10 { _ = cdc_write_byte(buf.9) }
+        let ascii = value.asciiDigits()
+        if ascii.count >= 1 { _ = cdc_write_byte(ascii.digits.0) }
+        if ascii.count >= 2 { _ = cdc_write_byte(ascii.digits.1) }
+        if ascii.count >= 3 { _ = cdc_write_byte(ascii.digits.2) }
+        if ascii.count >= 4 { _ = cdc_write_byte(ascii.digits.3) }
+        if ascii.count >= 5 { _ = cdc_write_byte(ascii.digits.4) }
+        if ascii.count >= 6 { _ = cdc_write_byte(ascii.digits.5) }
+        if ascii.count >= 7 { _ = cdc_write_byte(ascii.digits.6) }
+        if ascii.count >= 8 { _ = cdc_write_byte(ascii.digits.7) }
+        if ascii.count >= 9 { _ = cdc_write_byte(ascii.digits.8) }
+        if ascii.count >= 10 { _ = cdc_write_byte(ascii.digits.9) }
         flush()
     }
 }
 
 extension UInt8 {
     @inline(__always)
-    func asciiDigits(into buffer: inout (UInt8, UInt8, UInt8), count: inout Int) {
+    func asciiDigits() -> (digits: (UInt8, UInt8, UInt8), count: Int) {
         if self >= 100 {
-            buffer.0 = self / 100 + 48
-            buffer.1 = (self / 10) % 10 + 48
-            buffer.2 = self % 10 + 48
-            count = 3
-        } else if self >= 10 {
-            buffer.0 = self / 10 + 48
-            buffer.1 = self % 10 + 48
-            count = 2
-        } else {
-            buffer.0 = self + 48
-            count = 1
+            return (digits: (self / 100 + 48, (self / 10) % 10 + 48, self % 10 + 48), count: 3)
         }
+        if self >= 10 {
+            return (digits: (self / 10 + 48, self % 10 + 48, 0), count: 2)
+        }
+        return (digits: (self + 48, 0, 0), count: 1)
     }
 }
 
 extension UInt16 {
-    /// Base-10 ASCII via `% 10` and `/ 10` only (no `pow10` helper).
     @inline(__always)
-    func asciiDigits(into buffer: inout (UInt8, UInt8, UInt8, UInt8, UInt8), count: inout Int) {
+    func asciiDigits() -> (digits: (UInt8, UInt8, UInt8, UInt8, UInt8), count: Int) {
         var v = UInt32(self)
         if v == 0 {
-            buffer.0 = 48
-            count = 1
-            return
+            return (digits: (48, 0, 0, 0, 0), count: 1)
         }
         var rev: (UInt8, UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0, 0)
         var k = 0
@@ -119,7 +101,7 @@ extension UInt16 {
             k += 1
             v /= 10
         }
-        count = k
+        var buffer: (UInt8, UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0, 0)
         var i = 0
         while i < k {
             let from = k - 1 - i
@@ -140,23 +122,22 @@ extension UInt16 {
             }
             i += 1
         }
+        return (digits: buffer, count: k)
     }
 }
 
 extension UInt32 {
     @inline(__always)
-    func asciiDigits(
-        into buffer: inout (
+    func asciiDigits() -> (
+        digits: (
             UInt8, UInt8, UInt8, UInt8, UInt8,
             UInt8, UInt8, UInt8, UInt8, UInt8
         ),
-        count: inout Int
+        count: Int
     ) {
         var v = self
         if v == 0 {
-            buffer.0 = 48
-            count = 1
-            return
+            return (digits: (48, 0, 0, 0, 0, 0, 0, 0, 0, 0), count: 1)
         }
         var rev: (
             UInt8, UInt8, UInt8, UInt8, UInt8,
@@ -180,7 +161,10 @@ extension UInt32 {
             k += 1
             v /= 10
         }
-        count = k
+        var buffer: (
+            UInt8, UInt8, UInt8, UInt8, UInt8,
+            UInt8, UInt8, UInt8, UInt8, UInt8
+        ) = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         var i = 0
         while i < k {
             let from = k - 1 - i
@@ -211,5 +195,6 @@ extension UInt32 {
             }
             i += 1
         }
+        return (digits: buffer, count: k)
     }
 }
