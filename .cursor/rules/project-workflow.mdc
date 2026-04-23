@@ -1,0 +1,26 @@
+---
+description: Core workflow preferences for this project
+alwaysApply: true
+---
+
+# SAMD21E Workflow Preferences
+
+## Change Strategy
+- Prefer minimal diffs that solve the requested problem.
+- Preserve existing behavior unless a change is explicitly requested.
+- Prioritize readability and maintainability in naming, control flow, and structure.
+
+## Verification
+- Run full verification when feasible after substantive changes:
+  - lint/static checks used by the project
+  - full build
+  - full test suite (if present)
+- If full verification is not feasible, clearly state what was run and what remains.
+
+## Git and Commit Safety
+- Never create commits unless explicitly requested by the user.
+- If asked to commit, include only relevant files and avoid unrelated edits.
+
+## Communication Style
+- Keep responses balanced: short explanation first, then key details.
+- Include concise next steps when useful (for example: test, build, or commit).

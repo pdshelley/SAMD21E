@@ -61,3 +61,7 @@ DerivedData/
 
 # Other
 .cbfg/
+.claud/
+
+# Local machine helpers (do not commit)
+scripts/local-build.sh

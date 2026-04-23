@@ -11,6 +11,14 @@ make clean && make
 
 This produces: `..build/SAMD21E.bin` (correctly offset at 0x2000)
 
+## If build fails with stdlib target error
+
+If you see `unable to load standard library for target 'armv6m-none-none-eabi'`, build with the local Swift snapshot toolchain:
+
+```bash
+TOOLCHAINS=swift make clean && TOOLCHAINS=swift make
+```
+
 ## Upload
 
 1. **Double-tap the reset button** on the QT Py board quickly.
