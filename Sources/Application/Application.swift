@@ -10,7 +10,11 @@
 var blinkTimer = PeriodicTimer(interval: 1000)
 var ledState: DigitalValue = .low
 var wasConnected: Bool = false
-var userRowData: UInt32 = 42
+var userRowMAC: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 0, 0, 0)
+let shouldWriteMACAfterCDCConnect: Bool = true
+let useCUserRowWriter: Bool = true
+var didAttemptUserRowWrite: Bool = false
+var userRowWriteSucceeded: Bool = false
 
 // MARK: - Entry Points
 
@@ -18,7 +22,7 @@ func appInit() {
     GPIO.PA02.setDataDirection(.output)
     GPIO.PA02.setValue(.low)
     blinkTimer.reset()
-    userRowData = UserRowReader.loadWord()
+    userRowMAC = UserRowReader.loadMACAddress()
     CDC.initialize()
 }
 
@@ -27,10 +31,32 @@ func appMain() {
 
     // Print a greeting the first time a terminal opens the port
     let connected = CDC.isConnected
+    if connected && shouldWriteMACAfterCDCConnect && !didAttemptUserRowWrite {
+        didAttemptUserRowWrite = true
+        if useCUserRowWriter {
+            userRowWriteSucceeded = user_row_write_mac_c(0xFA, 0x48, 0x37, 0x00, 0x00, 0x03)
+        } else {
+            userRowWriteSucceeded = UserRowWriter.writeMACAddress(0xFA, 0x48, 0x37, 0x00, 0x00, 0x03)
+        }
+        userRowMAC = UserRowReader.loadMACAddress()
+    }
     if connected && !wasConnected {
         CDC.print("Hello from SAMD21E!\r\n")
-        CDC.print("User Row: ")
-        CDC.print(userRowData)
+        if didAttemptUserRowWrite {
+            CDC.print(userRowWriteSucceeded ? "User Row write: OK\r\n" : "User Row write: FAIL\r\n")
+        }
+        CDC.print("User Row MAC: ")
+        CDC.print(userRowMAC.0)
+        CDC.print(":")
+        CDC.print(userRowMAC.1)
+        CDC.print(":")
+        CDC.print(userRowMAC.2)
+        CDC.print(":")
+        CDC.print(userRowMAC.3)
+        CDC.print(":")
+        CDC.print(userRowMAC.4)
+        CDC.print(":")
+        CDC.print(userRowMAC.5)
         CDC.print("\r\n")
     }
     wasConnected = connected

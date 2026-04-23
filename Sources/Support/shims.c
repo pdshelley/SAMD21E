@@ -69,6 +69,10 @@ uint32_t _volatileRegisterReadUInt32(uintptr_t address) {
     return *(volatile uint32_t *)address;
 }
 
+uint16_t _volatileRegisterReadUInt16(uintptr_t address) {
+    return *(volatile uint16_t *)address;
+}
+
 /// Volatile Register Write
 ///
 /// This could be achieved in Swift only with the following code, however while the compiler seems to mark this as volitile it is
@@ -87,4 +91,8 @@ uint32_t _volatileRegisterReadUInt32(uintptr_t address) {
 /// https://forums.swift.org/t/pitch-low-level-operations-for-volatile-memory-accesses/69483
 void _volatileRegisterWriteUInt32(uintptr_t address, uint32_t value) {
     *(volatile uint32_t *)address = value;
+}
+
+void _volatileRegisterWriteUInt16(uintptr_t address, uint16_t value) {
+    *(volatile uint16_t *)address = value;
 }
