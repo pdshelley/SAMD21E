@@ -63,7 +63,7 @@
 				TargetAttributes = {
 					DA8CFA102F80CD7400489BD2 = {
 						CreatedOnToolsVersion = 26.4;
-						LastSwiftMigration = 2640;
+						LastSwiftMigration = 2650;
 					};
 				};
 			};

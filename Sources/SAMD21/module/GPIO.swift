@@ -8,9 +8,22 @@
 
 @usableFromInline let PORTA_BASE: UInt = 0x41004400   // SAMD21 datasheet §23.8
 
+/// Peripheral multiplexing function (PMUX) — see SAMD21 datasheet 6.1 and 23.8.12
+enum PeripheralFunction: UInt8 {
+    case a = 0
+    case b = 1
+    case c = 2   // SERCOM on QT Py (PA08–PA11)
+    case d = 3
+    case e = 4
+    case f = 5
+    case g = 6
+    case h = 7
+}
+
+
 struct GPIO {
     
-    enum PORTA: AtomicPort {
+    struct PORTA: AtomicPort {
         
         /// Data Direction - DIR
         /// See Section 23.8.1.
@@ -30,7 +43,7 @@ struct GPIO {
         /// | 1     | The corresponding I/O pin in the PORT group is configured as an output. |
         /// -----------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataDirection: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE)
@@ -59,7 +72,7 @@ struct GPIO {
         /// | 1     | The corresponding I/O pin in the PORT group is configured as input.      |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataDirectionClear: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x04)
@@ -88,7 +101,7 @@ struct GPIO {
         /// | 1     | The corresponding I/O pin in the PORT group is configured as an output.  |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataDirectionSet: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x08)
@@ -117,7 +130,7 @@ struct GPIO {
         /// | 1     | The direction of the corresponding I/O pin is toggled.                   |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataDirectionToggle: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x0C)
@@ -149,7 +162,7 @@ struct GPIO {
         /// | 1     | The I/O pin output is driven high, or the input is connected to an internal pull-up.  |
         /// -------------------------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataRegister: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x10)
@@ -182,7 +195,7 @@ struct GPIO {
         /// | 1     | The corresponding I/O pin output is driven low, or the input is connected to an internal pull-down. |
         /// ---------------------------------------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataRegisterClear: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x14)
@@ -215,7 +228,7 @@ struct GPIO {
         /// | 1     | The corresponding I/O pin output is driven high, or the input is connected to an internal pull-up. |
         /// --------------------------------------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataRegisterSet: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x18)
@@ -247,7 +260,7 @@ struct GPIO {
         /// | 1     | The corresponding OUT bit value is toggled.                              |
         /// ------------------------------------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var dataOutputValueToggle: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x1C)
@@ -266,7 +279,7 @@ struct GPIO {
         /// the input pin.
         /// These bits are set when the corresponding I/O pin input sampler detects a logical high level on the
         /// input pin.
-        @inline(__always)
+//        @inline(__always)
         static var inputAddress: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x20)
@@ -290,7 +303,7 @@ struct GPIO {
         /// | 1     | Continuous sampling of I/O pin is enabled. |
         /// ------------------------------------------------------
         /// ```
-        @inline(__always)
+//        @inline(__always)
         static var inputSamplingMode: UInt32 {
             get {
                 _volatileRegisterReadUInt32(PORTA_BASE + 0x24)
@@ -300,12 +313,122 @@ struct GPIO {
             }
         }
         
-        // TODO: Add These:
-        /// 23.8.11. Write Configuration
+        /// WRCONFIG
         
-        /// 23.8.12. Peripheral Multiplexing n
         
-        /// 23.8.13. Pin Configuration
+        /// PMUX0 –  Peripheral Multiplexing n - 23.8.12.
+        ///
+        /// Name: PMUX
+        /// Offset: 0x30 + n*0x01 [n=0..15]
+        /// Reset: 0x00
+        /// Property: PAC Write-Protection
+        ///
+        /// Tip: The I/O pins are assembled in pin groups (”PORT groups”) with up to 32 pins.
+        /// Group 0 consists of the PA pins, group 1 is for the PB pins, etc. Each pin group
+        /// has its own PORT registers, with a 0x80 address spacing. For example, the register
+        /// address offset for the Data Direction (DIR) register for group 0 (PA00 to PA31) is
+        /// 0x00, and the register address offset for the DIR register for group 1 (PB00 to
+        /// PB31) is 0x80.
+        ///
+        /// There are up to 16 Peripheral Multiplexing registers in each group, one for every set of two
+        /// subsequent I/O lines. The n denotes the number of the set of I/O lines.
+        /// ```
+        /// --------------------------------------------------------------------------------
+        /// | Bit          |   7   |   6   |   5   |   4   |   3   |   2   |   1   |   0   |
+        /// --------------------------------------------------------------------------------
+        /// |              |             PMUXO             |             PMUXE             |
+        /// --------------------------------------------------------------------------------
+        /// | Read/Write   |  R/W  |  R/W  |  R/W  |  R/W  |  R/W  |  R/W  |  R/W  |  R/W  |
+        /// --------------------------------------------------------------------------------
+        /// | Reset        |   0   |   0   |   0   |   0   |   0   |   0   |   0   |   0   |
+        /// --------------------------------------------------------------------------------
+        /// ```
+        /// This causes problems when it is inlined. Leave as is.
+        static func setPeripheralMux(pin: UInt32, function: PeripheralFunction) {
+            let index = UInt(pin / 2)
+            let address = PORTA_BASE + 0x30 + index
+            let current = readUInt8(address)
+
+            if (pin & 1) == 0 {
+                // even pin → low nibble
+                let value = (current & 0xF0) | function.rawValue
+                writeUInt8(address, value)
+            } else {
+                // odd pin → high nibble
+                let value = (current & 0x0F) | (function.rawValue << 4)
+                writeUInt8(address, value)
+            }
+        }
+        
+        /// PMUX15
+        
+        /// PINCFG0
+        
+        /// PINCFG31
+        
+        
+        
+        
+        /// Configure a pin for peripheral use (e.g. SERCOM PAD) in the minimal number of writes.
+        ///
+        /// - PMUX function is set
+        /// - PMUXEN = 1 and INEN (if requested) are set in **one** PINCFG write
+        /// - No extra RMW storms
+        ///
+        /// This is the safe, efficient replacement for the old three-call pattern.
+//        @inlinable @inline(__always)
+        static func configureForPeripheral(pin: UInt32, function: PeripheralFunction, inputEnable: Bool = false) {
+            // 1. Set the peripheral function (PMUX register)
+            setPeripheralMux(pin: pin, function: function)
+
+            // 2. Single atomic write to PINCFG byte (PMUXEN + INEN)
+            let address = PORTA_BASE + 0x40 + UInt(pin)
+            var cfg: UInt8 = 0x01                    // PMUXEN = 1
+            if inputEnable {
+                cfg |= 0x02                          // INEN = 1
+            }
+            writeUInt8(address, cfg)
+        }
+
+        /// 23.8.13. Pin Configuration n (PINCFG)
+        /// PINCFG.PMUXEN (bit 0): route the pin to its peripheral function.
+        ///
+        /// This causes problems when it is inlined. Leave as is.
+        static func setPeripheralMuxEnable(pin: UInt32, enabled: Bool) {
+            let address = PORTA_BASE + 0x40 + UInt(pin)
+            let current = readUInt8(address)
+            let value = enabled ? (current | 0x01) : (current & 0xFE)
+            writeUInt8(address, value)
+        }
+
+        /// PINCFG.INEN (bit 1): enable the input synchronizer/sampler.
+        /// Required for any peripheral input (e.g. SPI MISO); has no effect
+        /// when the pin is driven as an output.
+        /// This causes problems when it is inlined. Leave as is.
+        static func setInputEnable(pin: UInt32, enabled: Bool) {
+            let address = PORTA_BASE + 0x40 + UInt(pin)
+            let current = readUInt8(address)
+            let value = enabled ? (current | 0x02) : (current & 0xFD)
+            writeUInt8(address, value)
+        }
+
+        @inline(__always) // Needed
+        private static func readUInt8(_ address: UInt) -> UInt8 {
+            let alignedAddress = address & ~UInt(0x03)
+            let shift = UInt32((address & 0x03) * 8)
+            let word = _volatileRegisterReadUInt32(alignedAddress)
+            return UInt8((word >> shift) & 0xFF)
+        }
+
+        @inline(__always) // I think Needed
+        private static func writeUInt8(_ address: UInt, _ value: UInt8) {
+            let alignedAddress = address & ~UInt(0x03)
+            let shift = UInt32((address & 0x03) * 8)
+            let mask = UInt32(0xFF) << shift
+            let current = _volatileRegisterReadUInt32(alignedAddress)
+            let updated = (current & ~mask) | (UInt32(value) << shift)
+            _volatileRegisterWriteUInt32(alignedAddress, updated)
+        }
     }
     
     /// PORTA

@@ -25,13 +25,8 @@ uintptr_t __stack_chk_guard = 0xDEADBEEF;
 
 /// Stack Smash Handler
 ///
-/// Called by the compiler-generated canary check if __stack_chk_guard has been
-/// overwritten, indicating a stack buffer overflow. On a hosted OS this would
-/// terminate the process; on bare metal we spin forever, which will trigger the
-/// watchdog timer if one is configured.
-///
-/// This definition must exist or the linker will fail to resolve the symbol.
-void __stack_chk_fail(void) { while (1) {} }
+/// Implemented in `fault_diag.c` with a distinct PA02 pulse pattern so it can
+/// be told apart from `HardFault_Handler` on a logic analyzer without a debugger.
 
 /// arc4random_buf Stub
 ///
@@ -69,6 +64,10 @@ uint32_t _volatileRegisterReadUInt32(uintptr_t address) {
     return *(volatile uint32_t *)address;
 }
 
+uint16_t _volatileRegisterReadUInt16(uintptr_t address) {
+    return *(volatile uint16_t *)address;
+}
+
 /// Volatile Register Write
 ///
 /// This could be achieved in Swift only with the following code, however while the compiler seems to mark this as volitile it is
@@ -87,4 +86,8 @@ uint32_t _volatileRegisterReadUInt32(uintptr_t address) {
 /// https://forums.swift.org/t/pitch-low-level-operations-for-volatile-memory-accesses/69483
 void _volatileRegisterWriteUInt32(uintptr_t address, uint32_t value) {
     *(volatile uint32_t *)address = value;
+}
+
+void _volatileRegisterWriteUInt16(uintptr_t address, uint16_t value) {
+    *(volatile uint16_t *)address = value;
 }

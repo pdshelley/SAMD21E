@@ -85,3 +85,21 @@ void delay(unsigned long ms) {
 }
 
 void SysTick_DefaultHandler(void) { _ulTickCount++; }
+
+void delay_busy_microseconds(unsigned int usec) {
+    if (usec == 0)
+        return;
+
+    /*
+     * Volatile spin: not a candidate for LLVM dead-store elimination, unlike a plain
+     * Swift `var` loop in Embedded. Tuned roughly for ~48 MHz M0+ (project F_CPU).
+     * Count with uncertainty ±30% — use a LA, not this, for exact µs metrology.
+     */
+    uint32_t n = (uint32_t)usec * (F_CPU / 1000000u) * 6u;
+    if (n < 1u)
+        n = 1u;
+    volatile uint32_t scratch = n;
+    while (scratch != 0) {
+        scratch -= 1;
+    }
+}

@@ -105,7 +105,7 @@ extension PartialPortPin where PinPartialPort.PortType == PinBit.PinMaskType {
 }
 
 extension PortPin where PinPort.PortType == PinBit.PinMaskType {
-    @inline(__always)
+//    @inline(__always)
     static func setDataDirection(_ direction: DataDirectionFlag) {
         switch direction {
             case .input:
@@ -135,7 +135,7 @@ extension PortPin where PinPort: AtomicPort, PinPort.PortType == PinBit.PinMaskT
         }
     }
 
-    @inline(__always)
+//    @inline(__always)
     static func setDataDirection(_ direction: DataDirectionFlag) {
         switch direction {
         case .input:  PinPort.dataDirectionClear = PinBit.pinSetMask
@@ -148,6 +148,31 @@ enum DigitalPin<_Port: Port, _Bit: Bit>: PortPin where _Port.PortType == _Bit.Pi
     typealias PinPort = _Port
     typealias PinPartialPort = _Port
     typealias PinBit = _Bit
+}
+
+extension DigitalPin where PinPort == GPIO.PORTA {
+    /// Set the peripheral multiplexing function for this pin.
+    /// Usage: GPIO.PA09.setPeripheralMux(.c)
+//    @inline(__always)
+    static func setPeripheralMux(_ function: PeripheralFunction) {
+        GPIO.PORTA.setPeripheralMux(pin: UInt32(truncatingIfNeeded: PinBit.bit), function: function)
+    }
+
+    /// PINCFG.PMUXEN — route pin to peripheral function.
+    static func setPeripheralMuxEnable(enabled: Bool) {
+        GPIO.PORTA.setPeripheralMuxEnable(
+            pin: UInt32(truncatingIfNeeded: PinBit.bit),
+            enabled: enabled
+        )
+    }
+
+    /// PINCFG.INEN — input synchronizer (e.g. SPI MISO).
+    static func setInputEnable(enabled: Bool) {
+        GPIO.PORTA.setInputEnable(
+            pin: UInt32(truncatingIfNeeded: PinBit.bit),
+            enabled: enabled
+        )
+    }
 }
 
 enum InputOnlyDigitalPin<_Port: PartialPort, _Bit: Bit>: PartialPortPin where _Port.PortType == _Bit.PinMaskType {

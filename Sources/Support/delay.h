@@ -33,6 +33,9 @@ extern unsigned long micros(void);
 extern void delay(unsigned long ms);
 extern void systick_init(void);
 
+/// Busy wait (asm loop). Safe against LLVM optimizing away unlike a Swift `for` loop.
+extern void delay_busy_microseconds(unsigned int usec);
+
 /*
  * Busy-wait for the given number of microseconds.
  * Loop runs at 3 cycles/iteration on Cortex-M0+ (sub, bne).
