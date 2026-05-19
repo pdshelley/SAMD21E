@@ -75,10 +75,10 @@ enum SPI0 {
             GPIO.PA09.setPeripheralMuxEnable(enabled: true)
             GPIO.PA09.setInputEnable(enabled: true)
             
-            GPIO.PA09.setDataDirection(.input)
+            GPIO.PA09.setDataDirection(.input) // HARD FAULT when this is here.
             
             
-        case 2: () // GPIO.PA09.setDataDirection(.input)
+        case 2: () // GPIO.PA09.setDataDirection(.input) // NO HARD FAULT when this is here.
             
             // MOSI PA10 → SERCOM0 PAD2.
         case 3: GPIO.PA10.setPeripheralMux(.c) // GPIO.PORTA.setPeripheralMux(pin: 10, function: sercomFunctionC)
