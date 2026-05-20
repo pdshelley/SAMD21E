@@ -393,7 +393,7 @@ struct GPIO {
         /// 23.8.13. Pin Configuration n (PINCFG)
         /// PINCFG.PMUXEN (bit 0): route the pin to its peripheral function.
         ///
-        /// This causes problems when it is inlined. Leave as is.
+        // @inline(__always) /// This causes problems when it is inlined. Leave as is.
         static func setPeripheralMuxEnable(pin: UInt32, enabled: Bool) {
             let address = PORTA_BASE + 0x40 + UInt(pin)
             let current = readUInt8(address)

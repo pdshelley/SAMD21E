@@ -87,6 +87,9 @@ $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 
 $(SWIFT_OBJ): $(SWIFT_SRCS) Sources/Support/BridgingHeader.h | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
+	# Emit IR for debugging 
+	$(SWIFTC) $(SWIFT_FLAGS) -emit-ir -Xfrontend -disable-llvm-optzns -c $(SWIFT_SRCS) -o $(BUILD_DIR)/swift.ll
+	# Normal compilation (this produces the .o file the linker needs)
 	$(SWIFTC) $(SWIFT_FLAGS) -c $(SWIFT_SRCS) -o $@
 
 # Link with arm-none-eabi-gcc so the bundled nano/nosys specs and linker script work
