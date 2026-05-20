@@ -65,9 +65,9 @@ func appMain() {
 
         if spi1Ready {
             if ledState == .high {
-                SPI1.transmitNeoPixel(red: 0, green: 0, blue: 255)
+                SPI1.transmitNeoPixel(red: 0, green: 0, blue: 50)
             } else {
-                SPI1.transmitNeoPixel(red: 255, green: 0, blue: 0)
+                SPI1.transmitNeoPixel(red: 50, green: 0, blue: 0)
             }
         }
     }

@@ -52,6 +52,7 @@ enum SPI1 {
     
     private static var configureStep: Int = 0
     private static var configureDone: Bool = false
+    private static var neoPixelDmaRunning: Bool = false
     
     static func configure() -> Bool {
         if configureDone { return true }
@@ -107,6 +108,8 @@ enum SPI1 {
                 drained &+= 1
             }
         case 23: SERCOM1.SPI.intflagTXC = true
+        case 24:
+            neoPixelDmaRunning = spi1_neopixel_dma_begin()
             configureDone = true
             return true
             
@@ -135,7 +138,7 @@ enum SPI1 {
     }
     
     private static let neoPixelLatchBytes: UInt32 = 32
-    private static let neoPixelFrameBytes: UInt32 = 41  // 9 color + 32 latch
+    private static let neoPixelFrameBytes: UInt32 = 41  // 9 color + 32 latch (neoTx00…neoTx40)
     
     // Pre-built frame (build phase may take time; burst transmit is gapless on DRE).
     private static var neoTx00: UInt8 = 0
@@ -314,14 +317,21 @@ enum SPI1 {
         SERCOM1.SPI.intflagTXC = true
     }
     
-    /// One WS2812 pixel (GRB on the wire). Build frame, then one gapless DRE burst.
+    /// One WS2812 pixel (GRB on the wire).
+    /// DMA path (default): update looping buffer only — SPI+DMAC never stop (Adafruit ZeroDMA style).
+    /// Fallback: CPU DRE burst if DMA setup failed.
     static func transmitNeoPixel(red: UInt8, green: UInt8, blue: UInt8) {
         if !configureDone { return }
+        if neoPixelDmaRunning {
+            spi1_neopixel_dma_set_pixel(green, red, blue)
+            return
+        }
         neoPixelBuildFrame(red: red, green: green, blue: blue)
         neoPixelBurstTransmit()
     }
     
-    /// Tune `clockRateSelect` if colors still bleed after gapless burst: .khz2180, .khz2000, .khz2400.
+    /// Looping DMAC → SERCOM1 fixes MOSI idle-high between frames (90 latch bytes in dma buffer).
+    /// Tune `clockRateSelect` only for CPU burst fallback: .khz2180, .khz2000, .khz2400.
     
     private static func applyMode(_ mode: Mode) {
         switch mode {
