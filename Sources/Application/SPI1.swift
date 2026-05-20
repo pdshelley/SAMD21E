@@ -33,6 +33,7 @@ enum SPI1 {
     enum ClockRateSelect: UInt32 {
         case mhz12 = 0  //  24 MHz / 2   = 12 MHz
         case mhz6 = 1  //  24 MHz / 4   =  6 MHz
+        case khz2400 = 9  //  48 MHz / 20  = 2.4 MHz (Adafruit NeoPixel SPI; GCLK0 after startup)
         case mhz3 = 3  //  24 MHz / 8   =  3 MHz
         case mhz1_5 = 7  //  24 MHz / 16  =  1.5 MHz
         case khz750 = 15  //  24 MHz / 32  =  750 kHz
@@ -48,7 +49,7 @@ enum SPI1 {
         didSet { applyDataOrder(dataOrder) }
     }
     
-    static var clockRateSelect: ClockRateSelect = .khz375 {
+    static var clockRateSelect: ClockRateSelect = .khz2400 {
         didSet { SERCOM1.SPI.baud = clockRateSelect.rawValue }
     }
     
@@ -70,8 +71,10 @@ enum SPI1 {
             // MOSI PA18 → SERCOM1 PAD2.
         case 3: GPIO.PA18.setPeripheralMux(.c)
             GPIO.PA18.setPeripheralMuxEnable(enabled: true)
+            GPIO.PA18.setDataDirection(.output)
+            
         case 4: ()
-        case 5: GPIO.PA18.setDataDirection(.output)
+        case 5: () // GPIO.PA18.setDataDirection(.output)
             
             // SCK PA19 → SERCOM1 PAD3.
         case 6: GPIO.PA19.setPeripheralMux(.c)
@@ -119,19 +122,19 @@ enum SPI1 {
     }
     
     static func transmit(_ byte: UInt8) {
-        var i: UInt32 = 0
-        while i < 100_000 {
-            if SERCOM1.SPI.intFlagDRE { break }
-            i &+= 1
-        }
-        
+        transmitQueued(byte)
+        transmitFlush()
+    }
+    
+    /// Queue one byte; do not wait for end-of-frame (WS2812 needs back-to-back bytes).
+    static func transmitQueued(_ byte: UInt8) {
+        _ = waitUntil({ SERCOM1.SPI.intFlagDRE })
         SERCOM1.SPI.data = UInt32(byte)
-        
-        var j: UInt32 = 0
-        while j < 100_000 {
-            if SERCOM1.SPI.intFlagTXC { break }
-            j &+= 1
-        }
+    }
+    
+    /// Wait until the last queued byte has fully shifted out.
+    static func transmitFlush() {
+        _ = waitUntil({ SERCOM1.SPI.intFlagTXC })
         SERCOM1.SPI.intflagTXC = true
     }
     
