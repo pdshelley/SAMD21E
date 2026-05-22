@@ -1,10 +1,9 @@
-# Self-contained Makefile for Adafruit QT Py SAMD21 (M0) — Embedded Swift build.
+# Minimal Embedded Swift build for Adafruit QT Py SAMD21 (Cortex-M0+).
 
 PROJECT   := SAMD21E
 BUILD_DIR := .build
 TOOLCHAIN := tools/arm-none-eabi-gcc/9-2019q4/bin
 
-# C/C++ uses clang targeting ARM so the object format matches swiftc output
 CC      := clang
 OBJCOPY := $(TOOLCHAIN)/arm-none-eabi-objcopy
 SIZE    := $(TOOLCHAIN)/arm-none-eabi-size
@@ -22,21 +21,13 @@ CFLAGS := \
   -nostdlib \
   -std=gnu11 \
   -DF_CPU=48000000L \
-  -D__SAMD21E18A__ -DCRYSTALLESS \
-  -DARM_MATH_CM0PLUS
-
-TUSB_DIR := Sources/tinyusb/src
+  -D__SAMD21E18A__ -DCRYSTALLESS
 
 INCLUDES := \
   -ISources/Support \
-  -ISources/Application/USB \
   -Itools/CMSIS/5.4.0/CMSIS/Core/Include \
   -Itools/CMSIS-Atmel/1.2.2/CMSIS/Device/ATMEL \
-  -Itools/arm-none-eabi-gcc/9-2019q4/arm-none-eabi/include \
-  -I$(TUSB_DIR) \
-  -I$(TUSB_DIR)/common \
-  -I$(TUSB_DIR)/device \
-  -I$(TUSB_DIR)/class/cdc
+  -Itools/arm-none-eabi-gcc/9-2019q4/arm-none-eabi/include
 
 SWIFT_FLAGS := \
   -target $(TARGET_TRIPLE) \
@@ -48,19 +39,8 @@ SWIFT_FLAGS := \
   $(foreach f,$(CFLAGS),-Xcc $(f)) \
   $(foreach f,$(INCLUDES),-Xcc $(f))
 
-# C support files only (Application.swift replaces Application.c)
-C_SRCS := $(wildcard Sources/Support/*.c) $(wildcard Sources/Application/USB/*.c)
+C_SRCS := $(wildcard Sources/Support/*.c)
 C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
-
-TUSB_SRCS := \
-  $(TUSB_DIR)/tusb.c \
-  $(TUSB_DIR)/common/tusb_fifo.c \
-  $(TUSB_DIR)/device/usbd.c \
-  $(TUSB_DIR)/device/usbd_control.c \
-  $(TUSB_DIR)/class/cdc/cdc_device.c \
-  $(TUSB_DIR)/portable/microchip/samd/dcd_samd.c
-
-TUSB_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(TUSB_SRCS))
 
 SWIFT_SRCS := \
   $(shell find Sources/Application -name "*.swift" 2>/dev/null) \
@@ -69,17 +49,12 @@ SWIFT_SRCS := \
 
 SWIFT_OBJ := $(BUILD_DIR)/swift.o
 
-ALL_OBJS := $(C_OBJS) $(TUSB_OBJS) $(SWIFT_OBJ)
+ALL_OBJS := $(C_OBJS) $(SWIFT_OBJ)
 
 .PHONY: all clean
 
 all: $(BUILD_DIR)/$(PROJECT).bin
 	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).elf
-
-# TinyUSB sources — suppress warnings from vendored library
-$(TUSB_OBJS): $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
-	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(INCLUDES) -w -c $< -o $@
 
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
@@ -87,12 +62,9 @@ $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
 
 $(SWIFT_OBJ): $(SWIFT_SRCS) Sources/Support/BridgingHeader.h | $(BUILD_DIR)
 	@mkdir -p $(dir $@)
-	# Emit proper LLVM IR (text) — NO -c flag
 	$(SWIFTC) $(SWIFT_FLAGS) -emit-ir -Xfrontend -disable-llvm-optzns $(SWIFT_SRCS) -o $(BUILD_DIR)/swift.ll
-	# Normal compilation (this one keeps -c)
 	$(SWIFTC) $(SWIFT_FLAGS) -c $(SWIFT_SRCS) -o $@
 
-# Link with arm-none-eabi-gcc so the bundled nano/nosys specs and linker script work
 $(BUILD_DIR)/$(PROJECT).elf: $(ALL_OBJS)
 	$(TOOLCHAIN)/arm-none-eabi-gcc -Os -Wl,--gc-sections \
 		-Ttools/linker_scripts/gcc/flash_with_bootloader.ld \
@@ -100,8 +72,7 @@ $(BUILD_DIR)/$(PROJECT).elf: $(ALL_OBJS)
 		-mcpu=cortex-m0plus -mthumb \
 		--specs=nano.specs --specs=nosys.specs \
 		-Wl,--cref -Wl,--check-sections -Wl,--gc-sections \
-		-o $@ $^ \
-		-Ltools/CMSIS/5.4.0/CMSIS/Lib/GCC/ -larm_cortexM0l_math -lm
+		-o $@ $^
 
 $(BUILD_DIR)/$(PROJECT).bin: $(BUILD_DIR)/$(PROJECT).elf
 	$(OBJCOPY) -O binary $< $@

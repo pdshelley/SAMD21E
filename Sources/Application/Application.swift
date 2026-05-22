@@ -1,11 +1,9 @@
 //
-//  Application.swift
-//  SAMD21E
+//  Minimal repro for swift#89287 (@inline(__always) hard fault on SAMD21).
 //
-//  Created by Paul Shelley on 4/17/26.
+//  Toggle: comment out the PA09 line in appInit() — board runs (LED blinks).
+//  With it enabled: hard fault during GPIO.PA09.setDataDirection(.output).
 //
-
-// MARK: - State
 
 var blinkTimer = PeriodicTimer(interval: 1000)
 var ledState: DigitalValue = .low
@@ -14,9 +12,8 @@ func appInit() {
     GPIO.PA02.setDataDirection(.output)
     GPIO.PA02.setValue(.low)
     blinkTimer.reset()
-    
-    // Code that breaks things
-    GPIO.PA09.setDataDirection(.output)
+
+    GPIO.PA09.setDataDirection(.output)  // comment this line to avoid hard fault
     GPIO.PA09.setValue(.low)
 }
 
