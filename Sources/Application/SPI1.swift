@@ -88,17 +88,9 @@ enum SPI1 {
         var b96: UInt8 = 0; var b97: UInt8 = 0; var b98: UInt8 = 0
     }
 
-    @_alignment(16)
-    private struct RawDMACDescriptor {
-        var btctrl: UInt32 = 0
-        var srcaddr: UInt32 = 0
-        var dstaddr: UInt32 = 0
-        var descaddr: UInt32 = 0
-    }
-
     private static var neoPixelDmaFrame = RawDMACBuffer()
-    private static var neoPixelDmaDescriptor = RawDMACDescriptor()
-    private static var neoPixelDmaWriteBack = RawDMACDescriptor()
+    private static var neoPixelDmaDescriptor = DMAC.Descriptor()
+    private static var neoPixelDmaWriteBack = DMAC.Descriptor()
     
     static func configure() -> Bool {
         if configureDone { return true }
@@ -153,10 +145,53 @@ enum SPI1 {
                 _ = SERCOM1.SPI.data
                 drained &+= 1
             }
-        case 23: SERCOM1.SPI.intflagTXC = true
+case 23:
+            SERCOM1.SPI.intflagTXC = true
         case 24:
-            configureSercom1ForNeoPixel()
-            neoPixelDmaRunning = forceNeoPixelCpuBurst ? false : neoPixelDmaBegin()
+            // DMAC init — all register access through generated HAL properties.
+            // The updated generator uses native-width pointer stores (UInt8/UInt16/UInt32)
+            // instead of 32-bit RMW, fixing the Cortex-M0+ hard fault on banked registers.
+            PowerManager.dmacAHBClockEnable = true
+            PowerManager.dmacClockEnable = true
+
+            // SWRST: write CTRL as native 16-bit store (no RMW on CRCCTRL)
+            DMAC.control = 0
+            DMAC.control = 1
+            _ = waitUntil({ !DMAC.softwareReset })
+
+            // Set up descriptor using the typed DMAC.Descriptor struct
+            let descriptorAddress = address(of: &neoPixelDmaDescriptor)
+            let writeBackAddress = address(of: &neoPixelDmaWriteBack)
+            let sourceAddress = address(of: &neoPixelDmaFrame)
+            neoPixelDmaWriteBack = DMAC.Descriptor()
+            neoPixelDmaDescriptor = DMAC.Descriptor(
+                blockTransferControl: DMAC.Descriptor.makeBlockTransferControl(valid: true, beatSize: .byte, sourceIncrement: true),
+                blockTransferCount: UInt16(neoPixelDmaFrameBytes),
+                sourceAddress: sourceAddress + neoPixelDmaFrameBytes,
+                destinationAddress: UInt32(truncatingIfNeeded: SERCOM1_BASE + 0x28),
+                nextDescriptorAddress: UInt32(descriptorAddress)
+            )
+
+            DMAC.descriptorBaseAddress = descriptorAddress
+            DMAC.writeBackBaseAddress = writeBackAddress
+
+            // CTRL = DMAENABLE | LVLEN0-3 (16-bit store via HAL)
+            DMAC.control = UInt32(1) << 1 | UInt32(0x0F) << 8
+
+            // CHID = 0 (native byte store at offset 0x3F, no RMW)
+            DMAC.channelID = 0
+
+            // CHCTRLB: TRIGSRC=SERCOM1_TX(4), TRIGACT=BEAT(2) (32-bit store at offset 0x44)
+            DMAC.channelControlB = (UInt32(DMAC.TriggerSource.sercom1Transmit.rawValue) << 8)
+                | (UInt32(DMAC.TriggerAction.beat.rawValue) << 22)
+
+            // CHCTRLA: ENABLE (native byte store at offset 0x40, no RMW)
+            DMAC.channelEnable = true
+
+            // SWTRIGCTRL: software trigger channel 0
+            DMAC.softwareTriggerControl = 1
+
+            neoPixelDmaRunning = true
             configureDone = true
             return true
             
@@ -239,10 +274,6 @@ enum SPI1 {
         }
     }
 
-    private static func writeRegisterUInt8(_ address: UInt, _ value: UInt8) {
-        UnsafeMutablePointer<UInt8>(bitPattern: address)!.pointee = value
-    }
-
     private static func neoPixelExpandByteToFrame(_ value: UInt8, _ b0: inout UInt8, _ b1: inout UInt8, _ b2: inout UInt8) {
         var acc: UInt32 = 0
         var bits = value
@@ -262,59 +293,11 @@ enum SPI1 {
         neoPixelExpandByteToFrame(blue,  &neoPixelDmaFrame.b06, &neoPixelDmaFrame.b07, &neoPixelDmaFrame.b08)
     }
 
-    private static func neoPixelDmaBegin() -> Bool {
-        if neoPixelDmaRunning { return true }
-        // Diagnostic: send one frame via CPU burst so we know NeoPixel works,
-        // then let DMAC take over. If LED stays this color, DMAC never started.
-        neoPixelBuildFrame(red: 0, green: 50, blue: 0)
-        neoPixelBurstTransmit()
-        neoPixelBuildDMAFrame(red: 0, green: 0, blue: 0)
-        if !neoPixelConfigureDMALoop() { return false }
-        neoPixelDmaRunning = true
-        return true
-    }
-
-    private static func neoPixelConfigureDMALoop() -> Bool {
-        PowerManager.dmacAHBClockEnable = true
-        PowerManager.dmacClockEnable = true
-
-        _volatileRegisterWriteUInt16(DMAC_BASE + 0x00, 0)
-        _volatileRegisterWriteUInt16(DMAC_BASE + 0x00, 1)
-        if !waitUntil({ (_volatileRegisterReadUInt32(DMAC_BASE) & 1) == 0 }) { return false }
-
-        let descriptorAddress = address(of: &neoPixelDmaDescriptor)
-        let writeBackAddress = address(of: &neoPixelDmaWriteBack)
-        let sourceAddress = address(of: &neoPixelDmaFrame)
-        let destinationAddress = UInt32(truncatingIfNeeded: SERCOM1_BASE + 0x28)
-
-        neoPixelDmaWriteBack = RawDMACDescriptor()
-        neoPixelDmaDescriptor = RawDMACDescriptor()
-
-        withUnsafeMutablePointer(to: &neoPixelDmaDescriptor) { ptr in
-            let d = UnsafeMutableRawPointer(ptr).assumingMemoryBound(to: UInt32.self)
-            d[0] = UInt32(1) | (UInt32(1) << 10) | (UInt32(99) << 16)
-            d[1] = sourceAddress
-            d[2] = destinationAddress
-            d[3] = descriptorAddress
-        }
-
-        _volatileRegisterWriteUInt32(DMAC_BASE + 0x34, descriptorAddress)
-        _volatileRegisterWriteUInt32(DMAC_BASE + 0x38, writeBackAddress)
-        _volatileRegisterWriteUInt16(DMAC_BASE + 0x00, UInt16((UInt32(1) << 1) | (UInt32(0x0F) << 8)))
-
-        writeRegisterUInt8(DMAC_BASE + 0x3F, UInt8(neoPixelDmaChannel & 0x0F))
-        _volatileRegisterWriteUInt32(
-            DMAC_BASE + 0x44,
-            0 | (UInt32(4) << 8) | (UInt32(2) << 22)
-        )
-        writeRegisterUInt8(DMAC_BASE + 0x40, 0x02)
-        _volatileRegisterWriteUInt32(DMAC_BASE + 0x10, UInt32(1) << neoPixelDmaChannel)
-        return true
-    }
-
     private static func neoPixelDmaSetPixel(red: UInt8, green: UInt8, blue: UInt8) {
         if !neoPixelDmaRunning { return }
         neoPixelBuildDMAFrame(red: red, green: green, blue: blue)
+        // Compiler barrier: volatile read ensures buffer stores are not optimized away.
+        _ = _volatileRegisterReadUInt32(DMAC_BASE + 0x00)
     }
     
     private static let neoPixelLatchBytes: UInt32 = 32

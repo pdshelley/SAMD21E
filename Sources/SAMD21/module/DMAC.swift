@@ -150,11 +150,10 @@ struct DMAC {
     @inline(__always)
     static var control: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE) >> 0) & 0x0000FFFF
+            UInt32(UnsafeMutablePointer<UInt16>(bitPattern: DMAC_BASE)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE)
-            _volatileRegisterWriteUInt32(DMAC_BASE, (word & 0xFFFF0000) | ((newValue & 0xFFFF) << 0))
+            UnsafeMutablePointer<UInt16>(bitPattern: DMAC_BASE)!.pointee = UInt16(newValue & 0xFFFF)
         }
     }
 
@@ -238,11 +237,10 @@ struct DMAC {
     @inline(__always)
     static var crcControl: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE) >> 16) & 0x0000FFFF
+            UInt32(UnsafeMutablePointer<UInt16>(bitPattern: DMAC_BASE + 0x02)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE)
-            _volatileRegisterWriteUInt32(DMAC_BASE, (word & 0x0000FFFF) | ((newValue & 0xFFFF) << 16))
+            UnsafeMutablePointer<UInt16>(bitPattern: DMAC_BASE + 0x02)!.pointee = UInt16(newValue & 0xFFFF)
         }
     }
 
@@ -283,10 +281,10 @@ struct DMAC {
     @inline(__always)
     static var crcDataInput: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x04)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x04)!.pointee
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x04, newValue)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x04)!.pointee = newValue
         }
     }
 
@@ -297,10 +295,10 @@ struct DMAC {
     @inline(__always)
     static var crcChecksum: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x08)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x08)!.pointee
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x08, newValue)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x08)!.pointee = newValue
         }
     }
 
@@ -313,11 +311,10 @@ struct DMAC {
     @inline(__always)
     static var crcStatus: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x0C) >> 0) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x0C)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE + 0x0C)
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x0C, (word & 0xFFFFFF00) | ((newValue & 0xFF) << 0))
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x0C)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -347,11 +344,10 @@ struct DMAC {
     @inline(__always)
     static var debugControl: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x0C) >> 8) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x0D)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE + 0x0C)
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x0C, (word & 0xFFFF00FF) | ((newValue & 0xFF) << 8))
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x0D)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -375,11 +371,10 @@ struct DMAC {
     @inline(__always)
     static var qosControl: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x0C) >> 16) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x0E)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE + 0x0C)
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x0C, (word & 0xFF00FFFF) | ((newValue & 0xFF) << 16))
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x0E)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -432,10 +427,10 @@ struct DMAC {
     @inline(__always)
     static var softwareTriggerControl: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x10)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x10)!.pointee
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x10, newValue)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x10)!.pointee = newValue
         }
     }
 
@@ -574,10 +569,10 @@ struct DMAC {
     @inline(__always)
     static var priorityControl0: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x14)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x14)!.pointee
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x14, newValue)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x14)!.pointee = newValue
         }
     }
 
@@ -675,11 +670,10 @@ struct DMAC {
     @inline(__always)
     static var interruptPending: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x20) >> 0) & 0x0000FFFF
+            UInt32(UnsafeMutablePointer<UInt16>(bitPattern: DMAC_BASE + 0x20)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE + 0x20)
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x20, (word & 0xFFFF0000) | ((newValue & 0xFFFF) << 0))
+            UnsafeMutablePointer<UInt16>(bitPattern: DMAC_BASE + 0x20)!.pointee = UInt16(newValue & 0xFFFF)
         }
     }
 
@@ -766,7 +760,7 @@ struct DMAC {
     @inline(__always)
     static var interruptStatus: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x24)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x24)!.pointee
         }
 
     }
@@ -886,7 +880,7 @@ struct DMAC {
     @inline(__always)
     static var busyChannels: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x28)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x28)!.pointee
         }
 
     }
@@ -1006,7 +1000,7 @@ struct DMAC {
     @inline(__always)
     static var pendingChannels: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x2C)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x2C)!.pointee
         }
 
     }
@@ -1121,7 +1115,7 @@ struct DMAC {
     @inline(__always)
     static var active: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x30)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x30)!.pointee
         }
 
     }
@@ -1189,10 +1183,10 @@ struct DMAC {
     @inline(__always)
     static var descriptorBaseAddress: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x34)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x34)!.pointee
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x34, newValue)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x34)!.pointee = newValue
         }
     }
 
@@ -1203,10 +1197,10 @@ struct DMAC {
     @inline(__always)
     static var writeBackBaseAddress: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x38)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x38)!.pointee
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x38, newValue)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x38)!.pointee = newValue
         }
     }
 
@@ -1218,11 +1212,10 @@ struct DMAC {
     @inline(__always)
     static var channelID: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x3C) >> 24) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x3F)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE + 0x3C)
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x3C, (word & 0x00FFFFFF) | ((newValue & 0xFF) << 24))
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x3F)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -1245,11 +1238,10 @@ struct DMAC {
     @inline(__always)
     static var channelControlA: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x40) >> 0) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x40)!.pointee)
         }
         set {
-            let word = _volatileRegisterReadUInt32(DMAC_BASE + 0x40)
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x40, (word & 0xFFFFFF00) | ((newValue & 0xFF) << 0))
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x40)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -1287,10 +1279,10 @@ struct DMAC {
     @inline(__always)
     static var channelControlB: UInt32 {
         get {
-            _volatileRegisterReadUInt32(DMAC_BASE + 0x44)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x44)!.pointee
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x44, newValue)
+            UnsafeMutablePointer<UInt32>(bitPattern: DMAC_BASE + 0x44)!.pointee = newValue
         }
     }
 
@@ -1377,10 +1369,10 @@ struct DMAC {
     @inline(__always)
     static var channelInterruptEnableClear: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x4C) >> 0) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x4C)!.pointee)
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x4C, (newValue & 0xFF) << 0)
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x4C)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -1424,10 +1416,10 @@ struct DMAC {
     @inline(__always)
     static var channelInterruptEnableSet: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x4C) >> 8) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x4D)!.pointee)
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x4C, (newValue & 0xFF) << 8)
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x4D)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -1471,10 +1463,10 @@ struct DMAC {
     @inline(__always)
     static var channelInterruptFlag: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x4C) >> 16) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x4E)!.pointee)
         }
         set {
-            _volatileRegisterWriteUInt32(DMAC_BASE + 0x4C, (newValue & 0xFF) << 16)
+            UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x4E)!.pointee = UInt8(newValue & 0xFF)
         }
     }
 
@@ -1518,7 +1510,7 @@ struct DMAC {
     @inline(__always)
     static var channelStatus: UInt32 {
         get {
-            (_volatileRegisterReadUInt32(DMAC_BASE + 0x4C) >> 24) & 0x000000FF
+            UInt32(UnsafeMutablePointer<UInt8>(bitPattern: DMAC_BASE + 0x4F)!.pointee)
         }
 
     }
