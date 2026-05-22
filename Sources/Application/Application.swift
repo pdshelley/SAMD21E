@@ -1,24 +1,23 @@
-//
-//  Minimal repro for swift#89287 (@inline(__always) hard fault on SAMD21).
-//
-//  Toggle: comment out the PA09 line in appInit() — board runs (LED blinks).
-//  With it enabled: hard fault during GPIO.PA09.setDataDirection(.output).
-//
+// Minimal repro for swift#89287 — comment out the PA09 line in appInit() to avoid hard fault.
 
-var blinkTimer = PeriodicTimer(interval: 1000)
+var blinkAt: UInt32 = 0
 var ledState: DigitalValue = .low
 
+@_cdecl("app_init")
 func appInit() {
     GPIO.PA02.setDataDirection(.output)
     GPIO.PA02.setValue(.low)
-    blinkTimer.reset()
+    blinkAt = UInt32(truncatingIfNeeded: millis())
 
     GPIO.PA09.setDataDirection(.output)  // comment this line to avoid hard fault
     GPIO.PA09.setValue(.low)
 }
 
+@_cdecl("app_main")
 func appMain() {
-    if blinkTimer.hasElapsed() {
+    let now = UInt32(truncatingIfNeeded: millis())
+    if now &- blinkAt >= 1000 {
+        blinkAt &+= 1000
         ledState.toggle()
         GPIO.PA02.setValue(ledState)
     }

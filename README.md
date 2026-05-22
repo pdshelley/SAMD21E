@@ -42,9 +42,8 @@ tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x
 
 | Path | Role |
 |------|------|
-| `Sources/Application/Application.swift` | Repro toggle (one line) |
-| `Sources/SAMD21/module/GPIO.swift` | PORT A + inlined byte helpers |
-| `Sources/SAMD21/Port.swift` | Pin types for PA02 / PA09 |
-| `Sources/Support/` | Startup, SysTick, volatile MMIO shims |
+| `Sources/Application/Application.swift` | `app_init` / `app_main`, repro toggle, LED blink |
+| `Sources/SAMD21/GPIO.swift` | PORT A registers, pin types, `DigitalValue` |
+| `Sources/Support/` | Startup, SysTick, volatile MMIO shims, fault LED patterns |
 
-USB, TinyUSB, SPI, and SERCOM code have been removed.
+Two Swift source files. USB, TinyUSB, SPI, and SERCOM code have been removed.
