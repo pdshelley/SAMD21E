@@ -44,6 +44,8 @@ tools/bossac/1.8.0-48-gb176eee/bossac -p cu.usbmodem1101 -e -w -v -R --offset=0x
 |------|------|
 | `Sources/Application/Application.swift` | `app_init` / `app_main`, repro toggle, LED blink |
 | `Sources/SAMD21/GPIO.swift` | PORT A registers, pin types, `DigitalValue` |
-| `Sources/Support/` | Startup, SysTick, volatile MMIO shims, fault LED patterns |
+| `Sources/Support/boot.c` | Vector table, reset, SysTick, `millis()`, calls Swift `app_init` / `app_main` |
+| `Sources/Support/startup.c` | 48 MHz clock init (required before GPIO is reliable) |
+| `Sources/Support/runtime.c` | Volatile MMIO shims, stack guard, libatomic stubs for the linker |
 
-Two Swift source files. USB, TinyUSB, SPI, and SERCOM code have been removed.
+Two Swift files, three C files. USB, TinyUSB, SPI, and SERCOM code have been removed.

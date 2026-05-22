@@ -8,8 +8,9 @@ func appInit() {
     GPIO.PA02.setDataDirection(.output)
     GPIO.PA02.setValue(.low)
     blinkAt = UInt32(truncatingIfNeeded: millis())
-
-    GPIO.PA09.setDataDirection(.output)  // comment this line to avoid hard fault
+    
+    // Comment these two line to avoid hard fault
+    GPIO.PA09.setDataDirection(.output)
     GPIO.PA09.setValue(.low)
 }
 

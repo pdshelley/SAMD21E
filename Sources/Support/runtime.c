@@ -1,29 +1,37 @@
-//
-//  runtime_stubs.c
-//  SAMD21E
-//
-//  Created by Paul Shelley on 4/17/26.
-//
+// Linker/runtime symbols required by Embedded Swift on Cortex-M0+.
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 
-/*
- * Heap allocation is not available on bare metal. Trap immediately if the
- * Embedded Swift runtime ever tries to allocate — this should never happen
- * with value-type-only Swift code, but the symbol must be defined to link.
- */
-int posix_memalign(void **memptr, size_t alignment, size_t size) {
-    (void)memptr; (void)alignment; (void)size;
-    __builtin_trap();
+uintptr_t __stack_chk_guard = 0xDEADBEEF;
+
+void arc4random_buf(void *buf, size_t nbytes) {
+    unsigned char *b = (unsigned char *)buf;
+    for (size_t i = 0; i < nbytes; i++) {
+        b[i] = 0xA5;
+    }
 }
 
-/*
- * Cortex-M0+ has no hardware atomic instructions; LLVM lowers all C11/Swift
- * atomic operations to calls into libatomic. These stubs are correct for
- * single-threaded bare-metal code where no preemption occurs.
- */
+void __stack_chk_fail(void) {
+    for (;;)
+        ;
+}
+
+uint32_t _volatileRegisterReadUInt32(uintptr_t address) {
+    return *(volatile uint32_t *)address;
+}
+
+void _volatileRegisterWriteUInt32(uintptr_t address, uint32_t value) {
+    *(volatile uint32_t *)address = value;
+}
+
+int posix_memalign(void **memptr, size_t alignment, size_t size) {
+    (void)memptr;
+    (void)alignment;
+    (void)size;
+    __builtin_trap();
+}
 
 uint32_t __atomic_load_4(const volatile void *ptr, int order) {
     (void)order;
@@ -51,10 +59,11 @@ uint32_t __atomic_fetch_sub_4(volatile void *ptr, uint32_t val, int order) {
     return old;
 }
 
-bool __atomic_compare_exchange_4(volatile void *ptr, void *expected,
-                                  uint32_t desired, bool weak,
-                                  int success, int failure) {
-    (void)weak; (void)success; (void)failure;
+bool __atomic_compare_exchange_4(volatile void *ptr, void *expected, uint32_t desired,
+                                 bool weak, int success, int failure) {
+    (void)weak;
+    (void)success;
+    (void)failure;
     volatile uint32_t *p = (volatile uint32_t *)ptr;
     uint32_t *exp = (uint32_t *)expected;
     if (*p == *exp) {
