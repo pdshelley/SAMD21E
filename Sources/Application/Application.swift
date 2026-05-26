@@ -37,8 +37,8 @@ func appMain() {
         if SPI1.configure() {
             spi1Ready = true
             CDC.print("SPI1 ready\r\n")
-        } else {
-            CDC.print("SPI1 configure not finished.\r\n")
+            // Push an initial color so the NeoPixel updates before the first blink tick.
+            SPI1.transmitNeoPixel(red: 50, green: 0, blue: 0)
         }
     }
 

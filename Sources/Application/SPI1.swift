@@ -53,6 +53,43 @@ enum SPI1 {
     private static var configureStep: Int = 0
     private static var configureDone: Bool = false
     private static var neoPixelDmaRunning: Bool = false
+    private static let neoPixelDmaChannel: UInt32 = 0
+    private static let neoPixelDmaColorBytes: UInt32 = 9
+    private static let neoPixelDmaLatchBytes: UInt32 = 90
+    private static let neoPixelDmaFrameBytes: UInt32 = neoPixelDmaColorBytes + neoPixelDmaLatchBytes
+
+    @_alignment(16)
+    private struct RawDMACBuffer {
+        var b00: UInt8 = 0; var b01: UInt8 = 0; var b02: UInt8 = 0; var b03: UInt8 = 0
+        var b04: UInt8 = 0; var b05: UInt8 = 0; var b06: UInt8 = 0; var b07: UInt8 = 0
+        var b08: UInt8 = 0; var b09: UInt8 = 0; var b10: UInt8 = 0; var b11: UInt8 = 0
+        var b12: UInt8 = 0; var b13: UInt8 = 0; var b14: UInt8 = 0; var b15: UInt8 = 0
+        var b16: UInt8 = 0; var b17: UInt8 = 0; var b18: UInt8 = 0; var b19: UInt8 = 0
+        var b20: UInt8 = 0; var b21: UInt8 = 0; var b22: UInt8 = 0; var b23: UInt8 = 0
+        var b24: UInt8 = 0; var b25: UInt8 = 0; var b26: UInt8 = 0; var b27: UInt8 = 0
+        var b28: UInt8 = 0; var b29: UInt8 = 0; var b30: UInt8 = 0; var b31: UInt8 = 0
+        var b32: UInt8 = 0; var b33: UInt8 = 0; var b34: UInt8 = 0; var b35: UInt8 = 0
+        var b36: UInt8 = 0; var b37: UInt8 = 0; var b38: UInt8 = 0; var b39: UInt8 = 0
+        var b40: UInt8 = 0; var b41: UInt8 = 0; var b42: UInt8 = 0; var b43: UInt8 = 0
+        var b44: UInt8 = 0; var b45: UInt8 = 0; var b46: UInt8 = 0; var b47: UInt8 = 0
+        var b48: UInt8 = 0; var b49: UInt8 = 0; var b50: UInt8 = 0; var b51: UInt8 = 0
+        var b52: UInt8 = 0; var b53: UInt8 = 0; var b54: UInt8 = 0; var b55: UInt8 = 0
+        var b56: UInt8 = 0; var b57: UInt8 = 0; var b58: UInt8 = 0; var b59: UInt8 = 0
+        var b60: UInt8 = 0; var b61: UInt8 = 0; var b62: UInt8 = 0; var b63: UInt8 = 0
+        var b64: UInt8 = 0; var b65: UInt8 = 0; var b66: UInt8 = 0; var b67: UInt8 = 0
+        var b68: UInt8 = 0; var b69: UInt8 = 0; var b70: UInt8 = 0; var b71: UInt8 = 0
+        var b72: UInt8 = 0; var b73: UInt8 = 0; var b74: UInt8 = 0; var b75: UInt8 = 0
+        var b76: UInt8 = 0; var b77: UInt8 = 0; var b78: UInt8 = 0; var b79: UInt8 = 0
+        var b80: UInt8 = 0; var b81: UInt8 = 0; var b82: UInt8 = 0; var b83: UInt8 = 0
+        var b84: UInt8 = 0; var b85: UInt8 = 0; var b86: UInt8 = 0; var b87: UInt8 = 0
+        var b88: UInt8 = 0; var b89: UInt8 = 0; var b90: UInt8 = 0; var b91: UInt8 = 0
+        var b92: UInt8 = 0; var b93: UInt8 = 0; var b94: UInt8 = 0; var b95: UInt8 = 0
+        var b96: UInt8 = 0; var b97: UInt8 = 0; var b98: UInt8 = 0
+    }
+
+    private static var neoPixelDmaFrame = RawDMACBuffer()
+    private static var neoPixelDmaDescriptor = DMAC.Descriptor()
+    private static var neoPixelDmaWriteBack = DMAC.Descriptor()
     
     static func configure() -> Bool {
         if configureDone { return true }
@@ -107,9 +144,53 @@ enum SPI1 {
                 _ = SERCOM1.SPI.data
                 drained &+= 1
             }
-        case 23: SERCOM1.SPI.intflagTXC = true
+case 23:
+            SERCOM1.SPI.intflagTXC = true
         case 24:
-            neoPixelDmaRunning = spi1_neopixel_dma_begin()
+            // DMAC init — all register access through generated HAL properties.
+            // The updated generator uses native-width pointer stores (UInt8/UInt16/UInt32)
+            // instead of 32-bit RMW, fixing the Cortex-M0+ hard fault on banked registers.
+            PowerManager.dmacAHBClockEnable = true
+            PowerManager.dmacClockEnable = true
+
+            // SWRST: write CTRL as native 16-bit store (no RMW on CRCCTRL)
+            DMAC.control = 0
+            DMAC.control = 1
+            _ = waitUntil({ !DMAC.softwareReset })
+
+            // Set up descriptor using the typed DMAC.Descriptor struct
+            let descriptorAddress = address(of: &neoPixelDmaDescriptor)
+            let writeBackAddress = address(of: &neoPixelDmaWriteBack)
+            let sourceAddress = address(of: &neoPixelDmaFrame)
+            neoPixelDmaWriteBack = DMAC.Descriptor()
+            neoPixelDmaDescriptor = DMAC.Descriptor(
+                blockTransferControl: DMAC.Descriptor.makeBlockTransferControl(valid: true, beatSize: .byte, sourceIncrement: true),
+                blockTransferCount: UInt16(neoPixelDmaFrameBytes),
+                sourceAddress: sourceAddress + neoPixelDmaFrameBytes,
+                destinationAddress: UInt32(truncatingIfNeeded: SERCOM1_BASE + 0x28),
+                nextDescriptorAddress: UInt32(descriptorAddress)
+            )
+
+            DMAC.descriptorBaseAddress = descriptorAddress
+            DMAC.writeBackBaseAddress = writeBackAddress
+
+            // CTRL = DMAENABLE | LVLEN0-3 (16-bit store via HAL)
+            DMAC.control = UInt32(1) << 1 | UInt32(0x0F) << 8
+
+            // CHID = 0 (native byte store at offset 0x3F, no RMW)
+            DMAC.channelID = 0
+
+            // CHCTRLB: TRIGSRC=SERCOM1_TX(4), TRIGACT=BEAT(2) (32-bit store at offset 0x44)
+            DMAC.channelControlB = (UInt32(DMAC.TriggerSource.sercom1Transmit.rawValue) << 8)
+                | (UInt32(DMAC.TriggerAction.beat.rawValue) << 22)
+
+            // CHCTRLA: ENABLE (native byte store at offset 0x40, no RMW)
+            DMAC.channelEnable = true
+
+            // SWTRIGCTRL: software trigger channel 0
+            DMAC.softwareTriggerControl = 1
+
+            neoPixelDmaRunning = true
             configureDone = true
             return true
             
@@ -135,6 +216,38 @@ enum SPI1 {
     static func transmitFlush() {
         _ = waitUntil({ SERCOM1.SPI.intFlagTXC })
         SERCOM1.SPI.intflagTXC = true
+    }
+
+    private static func address<T>(of value: inout T) -> UInt32 {
+        withUnsafeMutablePointer(to: &value) { pointer in
+            UInt32(truncatingIfNeeded: UInt(bitPattern: pointer))
+        }
+    }
+
+    private static func neoPixelExpandByteToFrame(_ value: UInt8, _ b0: inout UInt8, _ b1: inout UInt8, _ b2: inout UInt8) {
+        var acc: UInt32 = 0
+        var bits = value
+        for _ in 0..<8 {
+            let one = (bits & 0x80) != 0
+            acc = (acc << 3) | (one ? 0b110 : 0b100)
+            bits &<<= 1
+        }
+        b0 = UInt8((acc >> 16) & 0xFF)
+        b1 = UInt8((acc >> 8) & 0xFF)
+        b2 = UInt8(acc & 0xFF)
+    }
+
+    private static func neoPixelBuildDMAFrame(red: UInt8, green: UInt8, blue: UInt8) {
+        neoPixelExpandByteToFrame(green, &neoPixelDmaFrame.b00, &neoPixelDmaFrame.b01, &neoPixelDmaFrame.b02)
+        neoPixelExpandByteToFrame(red,   &neoPixelDmaFrame.b03, &neoPixelDmaFrame.b04, &neoPixelDmaFrame.b05)
+        neoPixelExpandByteToFrame(blue,  &neoPixelDmaFrame.b06, &neoPixelDmaFrame.b07, &neoPixelDmaFrame.b08)
+    }
+
+    private static func neoPixelDmaSetPixel(red: UInt8, green: UInt8, blue: UInt8) {
+        if !neoPixelDmaRunning { return }
+        neoPixelBuildDMAFrame(red: red, green: green, blue: blue)
+        // Compiler barrier: volatile read ensures buffer stores are not optimized away.
+        _ = _volatileRegisterReadUInt32(DMAC_BASE + 0x00)
     }
     
     private static let neoPixelLatchBytes: UInt32 = 32
@@ -318,19 +431,19 @@ enum SPI1 {
     }
     
     /// One WS2812 pixel (GRB on the wire).
-    /// DMA path (default): update looping buffer only — SPI+DMAC never stop (Adafruit ZeroDMA style).
+    /// DMA path (default): update looping buffer only; SPI+DMAC never stop (Adafruit ZeroDMA style).
     /// Fallback: CPU DRE burst if DMA setup failed.
     static func transmitNeoPixel(red: UInt8, green: UInt8, blue: UInt8) {
         if !configureDone { return }
         if neoPixelDmaRunning {
-            spi1_neopixel_dma_set_pixel(green, red, blue)
+            neoPixelDmaSetPixel(red: red, green: green, blue: blue)
             return
         }
         neoPixelBuildFrame(red: red, green: green, blue: blue)
         neoPixelBurstTransmit()
     }
     
-    /// Looping DMAC → SERCOM1 fixes MOSI idle-high between frames (90 latch bytes in dma buffer).
+    /// Looping DMAC to SERCOM1 fixes MOSI idle-high between frames (90 latch bytes in DMA buffer).
     /// Tune `clockRateSelect` only for CPU burst fallback: .khz2180, .khz2000, .khz2400.
     
     private static func applyMode(_ mode: Mode) {

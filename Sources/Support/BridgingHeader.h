@@ -39,8 +39,6 @@ extern void spi0_enable_generic_clocks(void); // TODO: Switch to the Swift versi
 /// Enable GCLK0 on SERCOM1 core + SERCOM slow (see spi1_gclk.c).
 extern void spi1_enable_generic_clocks(void);
 
-#include "spi1_neopixel_dma.h"
-
 extern bool user_row_write_mac_c(
     uint8_t b0,
     uint8_t b1,
