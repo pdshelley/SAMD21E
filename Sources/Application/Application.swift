@@ -12,7 +12,7 @@ var ledState: DigitalValue = .low
 var wasConnected: Bool = false
 var spi1Ready: Bool = false
 
-private let spiBringUpDelayMs: UInt32 = 300
+private let spiBringUpDelayMs: UInt32 = 5000
 
 // MARK: - Entry Points
 
