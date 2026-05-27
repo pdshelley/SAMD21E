@@ -39,6 +39,19 @@ extern void spi0_enable_generic_clocks(void); // TODO: Switch to the Swift versi
 /// Enable GCLK0 on SERCOM1 core + SERCOM slow (see spi1_gclk.c).
 extern void spi1_enable_generic_clocks(void);
 
+/// Enable GCLK0 on SERCOM3 core + SERCOM slow for STEMMA I2C (see i2c3_gclk.c).
+extern void i2c3_enable_generic_clocks(void);
+
+/// SERCOM3 I2C on PA16/PA17 (STEMMA; SERCOM1 reserved for NeoPixel SPI).
+extern void i2c3_master_init(void);
+extern bool i2c3_master_probe(uint8_t addr7);
+extern bool i2c3_master_read_reg(uint8_t addr7, uint8_t reg, uint8_t *out_byte);
+extern void i2c3_master_debug_snapshot(
+    uint8_t *enable, uint8_t *busstate, uint8_t *intflag, uint8_t *rxnack);
+extern void i2c3_run_isolate_test_c(void);
+extern void i2c3_poll(unsigned long ms);
+extern void app_c_main_poll(unsigned long ms);
+
 extern bool user_row_write_mac_c(
     uint8_t b0,
     uint8_t b1,

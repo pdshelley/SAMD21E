@@ -48,9 +48,10 @@ SWIFT_FLAGS := \
   $(foreach f,$(CFLAGS),-Xcc $(f)) \
   $(foreach f,$(INCLUDES),-Xcc $(f))
 
-# C support files only (Application.swift replaces Application.c)
-C_SRCS := $(wildcard Sources/Support/*.c) $(wildcard Sources/Application/USB/*.c)
-C_OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,$(C_SRCS))
+# C support files (app_bringup.c is only for `make bringup`)
+SUPPORT_C_SRCS := $(filter-out Sources/Support/app_bringup.c,$(wildcard Sources/Support/*.c))
+C_SRCS := $(SUPPORT_C_SRCS) $(wildcard Sources/Application/USB/*.c)
+C_OBJS := $(patsubst Sources/%.c,$(BUILD_DIR)/Sources/%.o,$(C_SRCS))
 
 TUSB_SRCS := \
   $(TUSB_DIR)/tusb.c \
@@ -71,10 +72,14 @@ SWIFT_OBJ := $(BUILD_DIR)/swift.o
 
 ALL_OBJS := $(C_OBJS) $(TUSB_OBJS) $(SWIFT_OBJ)
 
-.PHONY: all clean
+.PHONY: all bringup clean
 
 all: $(BUILD_DIR)/$(PROJECT).bin
 	$(SIZE) -A $(BUILD_DIR)/$(PROJECT).elf
+
+# Pure C — no Swift. Use this to prove I2C on the LA without Swift runtime.
+bringup: $(BUILD_DIR)/$(PROJECT)_bringup.bin
+	$(SIZE) -A $(BUILD_DIR)/$(PROJECT)_bringup.elf
 
 # TinyUSB sources — suppress warnings from vendored library
 $(TUSB_OBJS): $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
@@ -102,6 +107,25 @@ $(BUILD_DIR)/$(PROJECT).elf: $(ALL_OBJS)
 
 $(BUILD_DIR)/$(PROJECT).bin: $(BUILD_DIR)/$(PROJECT).elf
 	$(OBJCOPY) -O binary $< $@
+
+BRINGUP_C_OBJS := $(C_OBJS) $(BUILD_DIR)/Sources/Support/app_bringup.o
+
+$(BUILD_DIR)/$(PROJECT)_bringup.elf: $(BRINGUP_C_OBJS) $(TUSB_OBJS)
+	$(TOOLCHAIN)/arm-none-eabi-gcc -Os -Wl,--gc-sections \
+		-Ttools/linker_scripts/gcc/flash_with_bootloader.ld \
+		-Wl,--section-start=.text=0x2000 \
+		-mcpu=cortex-m0plus -mthumb \
+		--specs=nano.specs --specs=nosys.specs \
+		-Wl,--cref -Wl,--check-sections -Wl,--gc-sections \
+		-o $@ $^ \
+		-Ltools/CMSIS/5.4.0/CMSIS/Lib/GCC/ -larm_cortexM0l_math -lm
+
+$(BUILD_DIR)/$(PROJECT)_bringup.bin: $(BUILD_DIR)/$(PROJECT)_bringup.elf
+	$(OBJCOPY) -O binary $< $@
+
+$(BUILD_DIR)/Sources/Support/app_bringup.o: Sources/Support/app_bringup.c | $(BUILD_DIR)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR):
 	mkdir -p $@
