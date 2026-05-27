@@ -448,14 +448,23 @@ bool i2c3_master_write_reg(uint8_t addr7, uint8_t reg, uint8_t value) {
 #define APDS9999_REG_PART_ID 0x06u
 #define APDS9999_PART_ID 0xC2u
 #define APDS9999_REG_MAIN_STATUS 0x07u
-#define APDS9999_STATUS_LIGHT_READY 0x08u
+#define APDS9999_STATUS_LIGHT_READY 0x08u /* same as Adafruit APDS9999_STATUS_LIGHT_DATA */
+#define APDS9999_REG_LS_DATA_IR_0 0x0Au
+#define APDS9999_LS_BURST_LEN 12u
 #define APDS9999_REG_LS_GREEN_0 0x0Du
 #define APDS9999_REG_LS_BLUE_0 0x10u
 #define APDS9999_REG_LS_RED_0 0x13u
 #define APDS9999_CH_BYTES 3u
 /* MAIN_CTRL: light enable (1) + RGB mode (2) */
 #define APDS9999_MAIN_RGB 0x06u
-/* LS_MEAS_RATE 0x22 uses RES_18BIT — max count before scale to 0..255 */
+/*
+ * LS_MEAS_RATE (reg 0x04): bits 6:4 = resolution, bits 2:0 = sample period.
+ * 0x23 = 18-bit (100 ms conv) + 200 ms measurement rate — smoother than 0x22.
+ */
+#define APDS9999_LS_MEAS_RATE_CFG 0x23u
+/* LS_GAIN: 0 = 1x (less saturation when object is close); 1 = 3x Adafruit default */
+#define APDS9999_LS_GAIN_CFG 0x00u
+/* 18-bit mode full-scale (see LightResolution.RES_18BIT) */
 #define APDS9999_RAW_MAX 0x3FFFFu
 
 static bool apds_sensor_ready;
@@ -476,20 +485,101 @@ static uint32_t apds_u20_from_buf(const uint8_t *p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)(p[2] & 0x0Fu) << 16);
 }
 
-static bool apds_wait_light_ready(void) {
-    unsigned tries = 0;
+static bool apds_read_channel(uint8_t reg, uint32_t *raw);
 
-    for (tries = 0; tries < 40u; tries++) {
-        uint8_t st = 0;
-        if (!i2c3_master_read_reg(APDS_ADDR, APDS9999_REG_MAIN_STATUS, &st)) {
+static bool apds_buf_all_ff(const uint8_t *buf, uint8_t len);
+static void apds_parse_ls_burst(const uint8_t *buf, uint32_t *r, uint32_t *g, uint32_t *b);
+static bool apds_read_rgb_separate(uint32_t *r, uint32_t *g, uint32_t *b);
+
+/*
+ * Adafruit pattern: one MAIN_STATUS read (clears flags); if light ready, read
+ * the 12-byte LS block. Caller recovers the bus before trying.
+ */
+static bool apds_status_light_ready(void) {
+    uint8_t st = 0;
+
+    if (!i2c3_master_read_reg(APDS_ADDR, APDS9999_REG_MAIN_STATUS, &st)) {
+        return false;
+    }
+    return (st & APDS9999_STATUS_LIGHT_READY) != 0u;
+}
+
+static bool apds_read_ls_burst_raw(uint32_t *r20, uint32_t *g20, uint32_t *b20) {
+    uint8_t buf[APDS9999_LS_BURST_LEN];
+
+    if (!i2c3_master_read_bytes(APDS_ADDR, APDS9999_REG_LS_DATA_IR_0, buf,
+                                APDS9999_LS_BURST_LEN) ||
+        apds_buf_all_ff(buf, APDS9999_LS_BURST_LEN)) {
+        return false;
+    }
+    apds_parse_ls_burst(buf, r20, g20, b20);
+    return true;
+}
+
+static bool apds_read_rgb_raw(uint32_t *r20, uint32_t *g20, uint32_t *b20) {
+    if (apds_status_light_ready() && apds_read_ls_burst_raw(r20, g20, b20)) {
+        if (*r20 == *g20 && *g20 == *b20) {
+            return apds_read_rgb_separate(r20, g20, b20);
+        }
+        return true;
+    }
+    return apds_read_rgb_separate(r20, g20, b20);
+}
+
+static bool apds_buf_all_ff(const uint8_t *buf, uint8_t len) {
+    for (uint8_t i = 0; i < len; i++) {
+        if (buf[i] != 0xFFu) {
             return false;
         }
-        if ((st & APDS9999_STATUS_LIGHT_READY) != 0u) {
-            return true;
-        }
-        delay_ms(5);
     }
-    return false;
+    return true;
+}
+
+static void apds_parse_ls_burst(const uint8_t *buf, uint32_t *r, uint32_t *g, uint32_t *b) {
+    /* Adafruit getRGBIRData: IR @0..2, G @3..5, B @6..8, R @9..11 */
+    (void)apds_u20_from_buf(buf);
+    *g = apds_u20_from_buf(&buf[3]);
+    *b = apds_u20_from_buf(&buf[6]);
+    *r = apds_u20_from_buf(&buf[9]);
+}
+
+static bool apds_read_rgb_separate(uint32_t *r, uint32_t *g, uint32_t *b) {
+    if (!apds_read_channel(APDS9999_REG_LS_GREEN_0, g)) {
+        return false;
+    }
+    if (!apds_read_channel(APDS9999_REG_LS_BLUE_0, b)) {
+        return false;
+    }
+    if (!apds_read_channel(APDS9999_REG_LS_RED_0, r)) {
+        return false;
+    }
+    return true;
+}
+
+static uint8_t filt_r;
+static uint8_t filt_g;
+static uint8_t filt_b;
+static bool filt_init;
+
+void i2c3_apds_filter_reset(void) {
+    filt_init = false;
+}
+
+static void apds_filter_rgb(uint8_t *r, uint8_t *g, uint8_t *b) {
+    if (!filt_init) {
+        filt_r = *r;
+        filt_g = *g;
+        filt_b = *b;
+        filt_init = true;
+    } else {
+        /* 15/16 previous + 1/16 new — slower than 7/8, less hue flicker */
+        filt_r = (uint8_t)(((uint16_t)filt_r * 15u + (uint16_t)*r) / 16u);
+        filt_g = (uint8_t)(((uint16_t)filt_g * 15u + (uint16_t)*g) / 16u);
+        filt_b = (uint8_t)(((uint16_t)filt_b * 15u + (uint16_t)*b) / 16u);
+    }
+    *r = filt_r;
+    *g = filt_g;
+    *b = filt_b;
 }
 
 static uint8_t scale_u20(uint32_t raw) {
@@ -510,6 +600,7 @@ void i2c3_bus_recover(void) {
     send_stop();
     i2c->I2CM.INTFLAG.reg = SERCOM_I2CM_INTFLAG_MB | SERCOM_I2CM_INTFLAG_SB;
     bus_force_idle();
+    (void)i2c->I2CM.STATUS.reg;
 }
 
 bool i2c3_apds_enable(void) {
@@ -518,12 +609,14 @@ bool i2c3_apds_enable(void) {
     i2c3_bus_recover();
     delay_ms(2);
 
-    /* 18-bit resolution, 100 ms rate (Adafruit APDS9999 defaults). */
-    if (!i2c3_master_write_reg(APDS_ADDR, APDS9999_REG_LS_MEAS_RATE, 0x22u)) {
+    i2c3_apds_filter_reset();
+
+    if (!i2c3_master_write_reg(APDS_ADDR, APDS9999_REG_LS_MEAS_RATE,
+                               APDS9999_LS_MEAS_RATE_CFG)) {
         apds_enable_fail_step = 1u;
         return false;
     }
-    if (!i2c3_master_write_reg(APDS_ADDR, APDS9999_REG_LS_GAIN, 0x01u)) {
+    if (!i2c3_master_write_reg(APDS_ADDR, APDS9999_REG_LS_GAIN, APDS9999_LS_GAIN_CFG)) {
         apds_enable_fail_step = 2u;
         return false;
     }
@@ -532,7 +625,7 @@ bool i2c3_apds_enable(void) {
         return false;
     }
 
-    delay_ms(150);
+    delay_ms(250);
     i2c3_bus_recover();
     apds_sensor_ready = true;
     return true;
@@ -559,6 +652,7 @@ bool i2c3_apds_read_rgb(uint8_t *r, uint8_t *g, uint8_t *b) {
     uint32_t r20 = 0;
     uint32_t g20 = 0;
     uint32_t b20 = 0;
+    unsigned attempt;
 
     if (r == 0 || g == 0 || b == 0) {
         return false;
@@ -568,23 +662,19 @@ bool i2c3_apds_read_rgb(uint8_t *r, uint8_t *g, uint8_t *b) {
     }
 
     i2c3_bus_recover();
-    (void)apds_wait_light_ready();
 
-    /* Separate pointer per channel (SERCOM burst may not auto-increment on 9999). */
-    if (!apds_read_channel(APDS9999_REG_LS_GREEN_0, &g20)) {
-        return false;
+    for (attempt = 0; attempt < 30u; attempt++) {
+        if (apds_read_rgb_raw(&r20, &g20, &b20)) {
+            *r = scale_u20(r20);
+            *g = scale_u20(g20);
+            *b = scale_u20(b20);
+            apds_filter_rgb(r, g, b);
+            return true;
+        }
+        i2c3_bus_recover();
+        delay_ms(5);
     }
-    if (!apds_read_channel(APDS9999_REG_LS_BLUE_0, &b20)) {
-        return false;
-    }
-    if (!apds_read_channel(APDS9999_REG_LS_RED_0, &r20)) {
-        return false;
-    }
-
-    *g = scale_u20(g20);
-    *b = scale_u20(b20);
-    *r = scale_u20(r20);
-    return true;
+    return false;
 }
 
 void i2c3_apds_debug_rgb_raw_cdc(void) {
@@ -597,14 +687,7 @@ void i2c3_apds_debug_rgb_raw_cdc(void) {
         return;
     }
     i2c3_bus_recover();
-    (void)apds_wait_light_ready();
-    if (!apds_read_channel(APDS9999_REG_LS_GREEN_0, &g20)) {
-        return;
-    }
-    if (!apds_read_channel(APDS9999_REG_LS_BLUE_0, &b20)) {
-        return;
-    }
-    if (!apds_read_channel(APDS9999_REG_LS_RED_0, &r20)) {
+    if (!apds_read_rgb_raw(&r20, &g20, &b20)) {
         return;
     }
     snprintf(line, sizeof(line), "APDS raw G=%lu B=%lu R=%lu\r\n", (unsigned long)g20,
@@ -662,7 +745,7 @@ void i2c3_run_isolate_test_c(void) {
     }
     cdc_puts(line);
     if (apds_on) {
-        cdc_puts("APDS-9999 enable: OK\r\n");
+        cdc_puts("APDS-9999 enable: OK (18b/200ms, gain 1x)\r\n");
         i2c3_apds_debug_rgb_raw_cdc();
     } else if (part_ok && part_id == APDS9999_PART_ID) {
         snprintf(line, sizeof(line), "APDS-9999 enable: failed (en %u wr %u)\r\n",
@@ -672,6 +755,7 @@ void i2c3_run_isolate_test_c(void) {
         cdc_puts("APDS-9999 enable: skipped\r\n");
     }
     cdc_print_snapshot("post ");
+    i2c3_bus_recover();
     cdc_puts("I2C isolate done\r\n");
 }
 

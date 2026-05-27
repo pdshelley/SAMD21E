@@ -51,6 +51,17 @@ static void build_color_frame(uint8_t red, uint8_t green, uint8_t blue) {
     expand_ws2812_byte(blue, &neo_frame[6], &neo_frame[7], &neo_frame[8]);
 }
 
+/* Pause looping DMA, rewrite color bytes, resume (avoids torn WS2812 frames). */
+static void neo_dma_pause_and_update(uint8_t red, uint8_t green, uint8_t blue) {
+    DMAC->CHID.reg = DMAC_CHID_ID(0);
+    DMAC->CHCTRLA.reg &= (uint8_t)~DMAC_CHCTRLA_ENABLE;
+    while (DMAC->CHCTRLA.bit.ENABLE) {
+    }
+    build_color_frame(red, green, blue);
+    DMAC->CHCTRLA.reg |= DMAC_CHCTRLA_ENABLE;
+    DMAC->SWTRIGCTRL.reg = 1u;
+}
+
 static void gpio_neopixel_pins(void) {
     PM->APBBMASK.reg |= PM_APBBMASK_PORT;
 
@@ -148,6 +159,5 @@ void spi1_neopixel_set_rgb(uint8_t red, uint8_t green, uint8_t blue) {
     if (!neo_ready) {
         return;
     }
-    build_color_frame(red, green, blue);
-    (void)DMAC->CTRL.reg;
+    neo_dma_pause_and_update(red, green, blue);
 }
