@@ -33,17 +33,10 @@ enum SPI0 {
         case khz187 = 63  //  24 MHz / 128 =  187.5 kHz
     }
     
-    static var mode: Mode = .mode0 {
-        didSet { applyMode(mode) }
-    }
-    
-    static var dataOrder: DataOrder = .mostSignificantBitFirst {
-        didSet { applyDataOrder(dataOrder) }
-    }
-    
-    static var clockRateSelect: ClockRateSelect = .khz375 {
-        didSet { SERCOM0.SPI.baud = clockRateSelect.rawValue }
-    }
+    // No didSet — default initialization runs before SERCOM0 clocks exist (HardFault).
+    static var mode: Mode = .mode0
+    static var dataOrder: DataOrder = .mostSignificantBitFirst
+    static var clockRateSelect: ClockRateSelect = .khz375
     
     static var isReady: Bool { configureDone }
     
@@ -156,28 +149,6 @@ enum SPI0 {
         GPIO.PA04.setValue(.high)
     }
     
-    private static func applyMode(_ mode: Mode) {
-        switch mode {
-        case .mode0:
-            SERCOM0.SPI.cpol = false
-            SERCOM0.SPI.cpha = false
-        case .mode1:
-            SERCOM0.SPI.cpol = false
-            SERCOM0.SPI.cpha = true
-        case .mode2:
-            SERCOM0.SPI.cpol = true
-            SERCOM0.SPI.cpha = false
-        case .mode3:
-            SERCOM0.SPI.cpol = true
-            SERCOM0.SPI.cpha = true
-        }
-    }
-    
-    private static func applyDataOrder(_ order: DataOrder) {
-        SERCOM0.SPI.dord = (order == .leastSignificantBitFirst)
-    }
-    
-//    @inline(__always)
     private static func waitUntil(
         _ condition: () -> Bool,
         maxIterations: UInt32 = 200_000

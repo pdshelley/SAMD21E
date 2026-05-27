@@ -94,7 +94,10 @@ enum SPI1 {
     static func configure() -> Bool {
         if configureDone { return true }
         switch configureStep {
-        case 0: PowerManager.portClockEnable = true
+        case 0:
+            // Ensure PORT register writes are legal before touching GPIO mux pins.
+            // (Swift PowerManager is still the safest place to enable PORT clock in this flow.)
+            PowerManager.portClockEnable = true
         case 1:
             GPIO.PA15.setDataDirection(.output)
             GPIO.PA15.setValue(.high)
@@ -144,14 +147,13 @@ enum SPI1 {
                 _ = SERCOM1.SPI.data
                 drained &+= 1
             }
-case 23:
+        case 23:
             SERCOM1.SPI.intflagTXC = true
         case 24:
             // DMAC init — all register access through generated HAL properties.
             // The updated generator uses native-width pointer stores (UInt8/UInt16/UInt32)
             // instead of 32-bit RMW, fixing the Cortex-M0+ hard fault on banked registers.
-            PowerManager.dmacAHBClockEnable = true
-            PowerManager.dmacClockEnable = true
+            dmac_enable_clocks()
 
             // SWRST: write CTRL as native 16-bit store (no RMW on CRCCTRL)
             DMAC.control = 0

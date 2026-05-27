@@ -7,6 +7,7 @@
 #include <sam.h>
 
 void spi1_enable_generic_clocks(void) {
+    PM->APBBMASK.reg |= PM_APBBMASK_PORT;
     PM->APBCMASK.reg |= PM_APBCMASK_SERCOM1;
 
     GCLK->CLKCTRL.reg = GCLK_CLKCTRL_CLKEN | GCLK_CLKCTRL_GEN_GCLK0 |

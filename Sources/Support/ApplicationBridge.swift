@@ -2,11 +2,15 @@
 //  ApplicationBridge.swift
 //  SAMD21E
 //
-//  Created by Paul Shelley on 4/17/26.
+//  Minimal Embedded Swift entry: all hardware and the main loop live in C.
 //
 
 @_cdecl("app_init")
-func _bridgeAppInit() { appInit() }
+func _bridgeAppInit() {
+    app_c_platform_init()
+}
 
 @_cdecl("app_main")
-func _bridgeAppMain() { appMain() }
+func _bridgeAppMain() {
+    app_c_main_poll(UInt(truncatingIfNeeded: millis()))
+}
