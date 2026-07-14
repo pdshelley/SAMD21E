@@ -92,7 +92,9 @@ SECTIONS
 
 		*(.rodata*)
 
-		KEEP(*(.eh_frame*))
+	    *(.got*)
+
+        KEEP(*(.eh_frame*))
 	} > FLASH
 
 	.ARM.extab :
