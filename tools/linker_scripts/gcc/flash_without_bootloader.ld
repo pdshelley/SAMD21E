@@ -90,6 +90,8 @@ SECTIONS
 
 		*(.rodata*)
 
+		*(.got*)
+
 		KEEP(*(.eh_frame*))
 	} > FLASH
 
